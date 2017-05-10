@@ -1,0 +1,10 @@
+"use strict";
+exports.__esModule = true;
+var matrix_1 = require("./matrix");
+var x = new matrix_1.Matrix([[1, 2], [3, 4]]);
+var y = new matrix_1.Matrix([[5, 6], [7, 8]]);
+console.log(x.add(y));
+console.log(x.subtract(y));
+console.log(x.multiply(y));
+console.log(x.matmul(y));
+console.log(y.transpose());
