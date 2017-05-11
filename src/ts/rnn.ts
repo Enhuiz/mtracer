@@ -1,15 +1,15 @@
 import { Matrix } from "./matrix";
 
-class RNN {
+export class RNN {
     seq_len: number;
     input_dim: number;
     hidden_dim: number;
     output_dim: number;
 
-    Whi: Matrix;
+    Wih: Matrix;
     Whh: Matrix;
     bh: Matrix;
-    Woh: Matrix;
+    Who: Matrix;
     bo: Matrix;
 
     constructor(seq_len, input_dim, hidden_dim, output_dim) {
@@ -20,93 +20,86 @@ class RNN {
 
         // this.Wih = Matrix.zeros([input_dim, hidden_dim]);
         // this.Whh = Matrix.zeros([hidden_dim, hidden_dim]);
-        this.Whi = Matrix.random([hidden_dim, input_dim], 0, 1);
+        this.Wih = Matrix.random([input_dim, hidden_dim], 0, 1);
         this.Whh = Matrix.random([hidden_dim, hidden_dim], 0, 1);
-        this.bh = Matrix.zeros([hidden_dim, 1]);
+        this.bh = Matrix.zeros([1, hidden_dim]);
 
-        this.Woh = Matrix.random([output_dim, hidden_dim], 0, 1);
-        this.bo = Matrix.zeros([output_dim, 1]);
+        this.Who = Matrix.random([hidden_dim, output_dim], 0, 1);
+        this.bo = Matrix.zeros([1, output_dim]);
     }
 
-    lossFunc(inputs_series, targets_series, prev_state) {
-        let states_series = [prev_state];
-        let outputs_series = [];
 
+    feedforward(inputs_series: Matrix, targets_series?: Matrix,
+        prev_state: Matrix = Matrix.zeros([1, this.hidden_dim]))
+        : [Matrix, Matrix, number] {
+
+        let states_series: Matrix = Matrix.zeros([inputs_series.shape[0] + 1, this.hidden_dim]);
+        let outputs_series: Matrix = Matrix.zeros([targets_series.shape[0], this.output_dim]);
         let loss = 0;
 
-        // forward
-        for (let t = 0; t < inputs_series.length; ++t) {
-            states_series.push(Matrix.tanh(
-                this.Whi.matmul(inputs_series[t])
-                    .add(this.Whh.matmul(states_series[t]))
-                    .add(this.bh)
-            ));
+        for (let t = 0; t < inputs_series.shape[0]; ++t) {
+            states_series.setRow(t,
+                Matrix.tanh(
+                    inputs_series[t].matmul(this.Wih)
+                        .add(states_series[t].matmul(this.Whh))
+                        .add(this.bh)
+                ));
 
-            outputs_series.push(this.Woh.matmul(states_series[t]).add(this.bo));
+            outputs_series.setRow(t + 1, states_series[t].matmul(this.Who).add(this.bo));
 
-            // reduce_sum((targets_series[t] - outputs_series[t]) ** 2)
-            loss += Matrix.reduce_sum(Matrix.pow(
-                targets_series[t].subtract(outputs_series[t]),
-                2
-            ));
+            if (targets_series) {
+                loss += Matrix.reduce_sum(Matrix.pow(
+                    targets_series[t].subtract(outputs_series[t]),
+                    2
+                ));
+            }
         }
+
+        return [states_series, outputs_series, loss];
+    }
+
+    train(inputs_series: Matrix, targets_series: Matrix,
+        eta: number = 0.3, prev_state: Matrix = Matrix.zeros([1, this.hidden_dim])): number {
+        let [states_series, outputs_series, loss] = this.feedforward(inputs_series, targets_series, prev_state);
 
         // backward
         let dWih = Matrix.zeros([this.input_dim, this.hidden_dim]);
         let dWhh = Matrix.zeros([this.hidden_dim, this.hidden_dim]);
-        let dbh = Matrix.zeros([this.hidden_dim, 1]);
+        let dbh = Matrix.zeros([1, this.hidden_dim]);
 
         let dWho = Matrix.zeros([this.hidden_dim, this.output_dim]);
-        let dbo = Matrix.zeros([this.output_dim, 1]);
-        let dhnext = Matrix.zeros([this.hidden_dim, 1]);
+        let dbo = Matrix.zeros([1, this.output_dim]);
+        let dhnext = Matrix.zeros([1, this.hidden_dim]);
 
-        for (let t = inputs_series.length - 1; t >= Math.max(inputs_series.length - this.seq_len, 0); --t) {
-            let dout = targets_series[t].subtract(outputs_series[t]);
+        for (let t = inputs_series.shape[0] - 1; t >= Math.max(inputs_series.shape[0] - this.seq_len, 0); --t) {
+            let dout = targets_series.row(t).subtract(outputs_series.row(t)); // 1 * output_dim
 
-            dWho = dWho.add(states_series[t+1].matmul(dout.transpose()));
-          
-            dbo = dbo.add(dout);
+            dWho = dWho.add(states_series.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
+            dbo = dbo.add(dout); // 1 * output_dim
 
-            let dh = this.Woh.transpose().matmul(dout).add(dhnext);
+            let dh = dout.matmul(this.Who.transpose()).add(dhnext);  // 1 * hidden_dim
+            let dhraw = Matrix.pow(states_series.row(t + 1), 2).neg().add(1).multiply(dh); // 1 * hidden_dim
 
-            // let dhraw = 
+            dbh = dbh.add(dhraw); // 1 * hidden_dim
+            dWhh = dWhh.add(states_series.row(t).transpose().matmul(dhraw));
+            dWih = dWih.add(inputs_series.row(t).transpose().matmul(states_series.row(t)));
 
-            // let dhraw = this.element_multiply(
-            //     math.subtract(
-            //         1,
-            //         this.pow(
-            //             states_series[t],
-            //             2)
-            //     ),
-            //     dh
-            // );
-
-            // dbh = math.add(
-            //     dbh,
-            //     dhraw
-            // );
-
-            // dWih = math.add(
-            //     dWih,
-            //     math.multiply(
-            //         inputs_series[t],
-            //         math.resize(dhraw, []),
-            //     )
-            // )
+            dhnext = this.Whh.matmul(dhraw);
         }
+
+        this.Wih = this.Wih.add(dWih.multiply(-eta));
+        this.Whh = this.Whh.add(dWhh.multiply(-eta));
+        this.bh = this.bh.add(dbh.multiply(-eta));
+
+        this.Who = this.Who.add(dWho.multiply(-eta));
+        this.bo = this.bo.add(dbo.multiply(-eta));
+
+        return loss;
     }
 
-
-
+    predict(inputs_series : Matrix) : Matrix
+    {
+        let [states_series, outputs_series, loss] = this.feedforward(inputs_series);
+        return outputs_series;
+    }
 };
-
-let input_dim = 10
-let hidden_dim = 20
-let output_dim = 30
-
-let rnn = new RNN(10, input_dim, hidden_dim, output_dim);
-rnn.lossFunc(
-    [Matrix.zeros([input_dim, 1])],
-    [Matrix.zeros([output_dim, 1])],
-    Matrix.zeros([hidden_dim, 1])
-);

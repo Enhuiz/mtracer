@@ -18,7 +18,7 @@ export class Matrix {
         }
     }
 
-    private static create_matrix(shape, element_wise_setter) {
+    private static create(shape, element_wise_setter) {
         let arr = new Array(shape[0]);
         for (let i = 0; i < arr.length; ++i) {
             arr[i] = new Array(shape[1]);
@@ -32,23 +32,23 @@ export class Matrix {
     }
 
     static eye(shape: [number, number]): Matrix {
-        return Matrix.create_matrix(shape, (index) => { return index[0] == index[1] ? 1 : 0; })
+        return Matrix.create(shape, (index) => { return index[0] == index[1] ? 1 : 0; })
     }
 
     static zeros(shape: [number, number]): Matrix {
-        return Matrix.create_matrix(shape, () => { return 0; })
+        return Matrix.create(shape, () => { return 0; })
     }
 
     static ones(shape: [number, number]): Matrix {
-        return Matrix.create_matrix(shape, () => { return 1; })
+        return Matrix.create(shape, () => { return 1; })
     }
 
     static full(shape: [number, number], val: number): Matrix {
-        return Matrix.create_matrix(shape, () => { return val; })
+        return Matrix.create(shape, () => { return val; })
     }
 
     static random(shape: [number, number], max: number, min: number): Matrix {
-        return Matrix.create_matrix(shape, () => { return min + Math.random() * (max - min); })
+        return Matrix.create(shape, () => { return min + Math.random() * (max - min); })
     }
 
     static tanh(mat: Matrix): Matrix {
@@ -110,7 +110,7 @@ export class Matrix {
         return this.map((x, y) => { return x - y; }, other);
     }
 
-    multiply(other: Matrix): Matrix {
+    multiply(other: Matrix | number): Matrix {
         return this.map((x, y) => { return x * y; }, other);
     }
 
@@ -133,6 +133,42 @@ export class Matrix {
 
     get(i: number, j: number): number {
         return this.content[i * this.shape[1] + j];
+    }
+
+    row(n: number): Matrix {
+        return Matrix.create([1, this.shape[1]], index=>{
+            return this.get(n, index[1]);
+        });
+    }
+
+    col(n: number): Matrix {
+        return Matrix.create([this.shape[1], 1], index=>{
+            return this.get(index[0], n);
+        });
+    }
+
+    setRow(n: number, mat: Matrix) : void
+    {
+        if (mat.shape[0] !== 1 || mat.shape[1] !== this.shape[1])
+        {
+            throw "Row size mismatch";
+        }
+        for (let j = 0; j < mat.shape[1]; ++j)
+        {
+            this.set(n, j, mat.get(1, j));
+        }
+    }
+
+    setCol(n: number, mat: Matrix) : void
+    {
+        if (mat.shape[1] !== 1 || mat.shape[0] !== this.shape[0])
+        {
+            throw "Row size mismatch";
+        }
+        for (let i = 0; i < mat.shape[0]; ++i)
+        {
+            this.set(i, n, mat.get(i, 1));
+        }
     }
 
     set(i: number, j: number, val: number) {

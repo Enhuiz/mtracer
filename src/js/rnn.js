@@ -25,7 +25,6 @@ var RNN = (function () {
                 .add(this.Whh.matmul(states_series[t]))
                 .add(this.bh)));
             outputs_series.push(this.Woh.matmul(states_series[t]).add(this.bo));
-            // reduce_sum((targets_series[t] - outputs_series[t]) ** 2)
             loss += matrix_1.Matrix.reduce_sum(matrix_1.Matrix.pow(targets_series[t].subtract(outputs_series[t]), 2));
         }
         // backward
@@ -40,16 +39,7 @@ var RNN = (function () {
             dWho = dWho.add(states_series[t + 1].matmul(dout.transpose()));
             dbo = dbo.add(dout);
             var dh = this.Woh.transpose().matmul(dout).add(dhnext);
-            // let dhraw = 
-            // let dhraw = this.element_multiply(
-            //     math.subtract(
-            //         1,
-            //         this.pow(
-            //             states_series[t],
-            //             2)
-            //     ),
-            //     dh
-            // );
+            var dhraw = matrix_1.Matrix.pow(states_series[t + 1], 2).neg().add(1).multiply(dh);
             // dbh = math.add(
             //     dbh,
             //     dhraw
