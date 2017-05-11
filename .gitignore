@@ -1,1 +1,3 @@
 *.py
+dist/
+node_modules/

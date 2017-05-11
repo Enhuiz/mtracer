@@ -1,7 +1,7 @@
 import { Matrix } from "./matrix";
 
 export class RNN {
-    private seq_len: number;
+    private series_len: number;
     private input_dim: number;
     private hidden_dim: number;
     private output_dim: number;
@@ -12,8 +12,8 @@ export class RNN {
     private Who: Matrix;
     private bo: Matrix;
 
-    constructor(seq_len, input_dim, hidden_dim, output_dim) {
-        this.seq_len = seq_len;
+    constructor(series_len: number, input_dim: number, hidden_dim: number, output_dim: number) {
+        this.series_len = series_len;
         this.input_dim = input_dim;
         this.hidden_dim = hidden_dim;
         this.output_dim = output_dim;
@@ -61,8 +61,8 @@ export class RNN {
         if (inputs.shape[1] !== this.input_dim
             || targets.shape[1] !== this.output_dim
             || prev_state.shape[1] !== this.hidden_dim
-            || inputs.shape[0] !== this.seq_len
-            || targets.shape[0] !== this.seq_len) {
+            || inputs.shape[0] !== this.series_len
+            || targets.shape[0] !== this.series_len) {
             throw new Error("Input mismatch");
         }
 
@@ -77,7 +77,7 @@ export class RNN {
         let dbo = Matrix.zeros([1, this.output_dim]);
         let dhnext = Matrix.zeros([1, this.hidden_dim]);
 
-        for (let t = inputs.shape[0] - 1; t >= Math.max(inputs.shape[0] - this.seq_len, 0); --t) {
+        for (let t = inputs.shape[0] - 1; t >= Math.max(inputs.shape[0] - this.series_len, 0); --t) {
             let dout = outputs.row(t).subtract(targets.row(t)); // 1 * output_dim
 
             dWho = dWho.add(states.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
@@ -108,7 +108,7 @@ export class RNN {
 
     predict(inputs: Matrix): Matrix {
         if (inputs.shape[1] !== this.input_dim
-            || inputs.shape[0] !== this.seq_len) {
+            || inputs.shape[0] !== this.series_len) {
             throw new Error("Input mismatch");
         }
 

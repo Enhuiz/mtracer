@@ -64,7 +64,7 @@ export class Matrix {
         return mat.map((val) => { return Math.exp(val); });
     }
 
-    static pow(mat: Matrix, n): Matrix {
+    static pow(mat: Matrix, n: number): Matrix {
         return mat.map((val) => { return Math.pow(val, n); });
     }
 
@@ -204,14 +204,14 @@ export class Matrix {
         });
     }
 
-    get(i: number, j: number);
-    get(i: [number, number]);
+    get(i: number, j: number): number;
+    get(i: [number, number]):number;
     get(i: number | [number, number], j?: number): number {
         let offset;
         if (typeof i === 'number' && typeof j === 'number') {
             offset = i * this.shape[1] + j;
         } else {
-            offset = i[0] * this.shape[1] + i[1];
+            offset = (<[number, number]>i)[0] * this.shape[1] + (<[number, number]>i)[1];
         }
         if (offset >= this.content.length) {
             throw new Error("Index " + [i, j] + " out range");
