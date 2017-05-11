@@ -1,16 +1,16 @@
 import { Matrix } from "./matrix";
 
 export class RNN {
-    seq_len: number;
-    input_dim: number;
-    hidden_dim: number;
-    output_dim: number;
+    private seq_len: number;
+    private input_dim: number;
+    private hidden_dim: number;
+    private output_dim: number;
 
-    Wih: Matrix;
-    Whh: Matrix;
-    bh: Matrix;
-    Who: Matrix;
-    bo: Matrix;
+    private Wih: Matrix;
+    private Whh: Matrix;
+    private bh: Matrix;
+    private Who: Matrix;
+    private bo: Matrix;
 
     constructor(seq_len, input_dim, hidden_dim, output_dim) {
         this.seq_len = seq_len;
@@ -27,46 +27,46 @@ export class RNN {
     }
 
 
-    feedforward(inputs_series: Matrix, targets_series?: Matrix,
+    private feedforward(inputs: Matrix, targets?: Matrix,
         prev_state: Matrix = Matrix.zeros([1, this.hidden_dim])): [Matrix, Matrix, number] {
 
-        let states_series: Matrix = Matrix.zeros([inputs_series.shape[0] + 1, this.hidden_dim]);
-        let outputs_series: Matrix = Matrix.zeros([inputs_series.shape[0], this.output_dim]);
+        let states: Matrix = Matrix.zeros([inputs.shape[0] + 1, this.hidden_dim]);
+        let outputs: Matrix = Matrix.zeros([inputs.shape[0], this.output_dim]);
         let loss = 0;
 
-        states_series.setRow(0, prev_state);
+        states.setRow(0, prev_state);
 
-        for (let t = 0; t < inputs_series.shape[0]; ++t) {
-            states_series.setRow(t + 1,
+        for (let t = 0; t < inputs.shape[0]; ++t) {
+            states.setRow(t + 1,
                 Matrix.tanh(
-                    inputs_series.row(t).matmul(this.Wih)
-                        .add(states_series.row(t).matmul(this.Whh))
+                    inputs.row(t).matmul(this.Wih)
+                        .add(states.row(t).matmul(this.Whh))
                         .add(this.bh)
                 ));
 
-            outputs_series.setRow(t, states_series.row(t + 1).matmul(this.Who).add(this.bo));
+            outputs.setRow(t, states.row(t + 1).matmul(this.Who).add(this.bo));
 
-            if (targets_series) {
+            if (targets) {
                 loss += Matrix.mean(Matrix.pow(
-                    outputs_series.row(t).subtract(targets_series.row(t)),
+                    outputs.row(t).subtract(targets.row(t)),
                     2
                 ));
             }
         }
-        return [states_series, outputs_series, loss];
+        return [states, outputs, loss];
     }
 
-    train(inputs_series: Matrix, targets_series: Matrix,
+    train(inputs: Matrix, targets: Matrix,
         eta: number = 0.3, prev_state: Matrix = Matrix.zeros([1, this.hidden_dim])): number {
-        if (inputs_series.shape[1] !== this.input_dim
-            || targets_series.shape[1] !== this.output_dim
+        if (inputs.shape[1] !== this.input_dim
+            || targets.shape[1] !== this.output_dim
             || prev_state.shape[1] !== this.hidden_dim
-            || inputs_series.shape[0] !== this.seq_len
-            || targets_series.shape[0] !== this.seq_len) {
+            || inputs.shape[0] !== this.seq_len
+            || targets.shape[0] !== this.seq_len) {
             throw new Error("Input mismatch");
         }
 
-        let [states_series, outputs_series, loss] = this.feedforward(inputs_series, targets_series, prev_state);
+        let [states, outputs, loss] = this.feedforward(inputs, targets, prev_state);
 
         // backward
         let dWih = Matrix.zeros([this.input_dim, this.hidden_dim]);
@@ -77,42 +77,42 @@ export class RNN {
         let dbo = Matrix.zeros([1, this.output_dim]);
         let dhnext = Matrix.zeros([1, this.hidden_dim]);
 
-        for (let t = inputs_series.shape[0] - 1; t >= Math.max(inputs_series.shape[0] - this.seq_len, 0); --t) {
-            let dout = outputs_series.row(t).subtract(targets_series.row(t)); // 1 * output_dim
+        for (let t = inputs.shape[0] - 1; t >= Math.max(inputs.shape[0] - this.seq_len, 0); --t) {
+            let dout = outputs.row(t).subtract(targets.row(t)); // 1 * output_dim
 
-            dWho = dWho.add(states_series.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
+            dWho = dWho.add(states.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
             dbo = dbo.add(dout); // 1 * output_dim
 
             let dh = dout.matmul(this.Who.transpose()).add(dhnext);  // 1 * hidden_dim
 
-            let dhraw = Matrix.tanh_d(states_series.row(t + 1)).multiply(dh); // 1 * hidden_dim 
+            let dhraw = Matrix.tanh_d(states.row(t + 1)).multiply(dh); // 1 * hidden_dim 
 
             dbh = dbh.add(dhraw); // 1 * hidden_dim
-            dWhh = dWhh.add(states_series.row(t).transpose().matmul(dhraw));
-            dWih = dWih.add(inputs_series.row(t).transpose().matmul(dhraw));
+            dWhh = dWhh.add(states.row(t).transpose().matmul(dhraw));
+            dWih = dWih.add(inputs.row(t).transpose().matmul(dhraw));
 
             dhnext = dhraw.matmul(this.Whh.transpose());
 
             if (isNaN(dhnext.get(0, 0))) throw Error("Nan appear when training");
         }
 
-        this.Wih = this.Wih.subtract(dWih.clip(-5, 5).multiply(eta));
-        this.Whh = this.Whh.subtract(dWhh.clip(-5, 5).multiply(eta));
-        this.bh = this.bh.subtract(dbh.clip(-5, 5).multiply(eta));
+        this.Wih = this.Wih.subtract(dWih.clip(-3, 3).multiply(eta));
+        this.Whh = this.Whh.subtract(dWhh.clip(-3, 3).multiply(eta));
+        this.bh = this.bh.subtract(dbh.clip(-3, 3).multiply(eta));
 
-        this.Who = this.Who.subtract(dWho.clip(-5, 5).multiply(eta));
-        this.bo = this.bo.subtract(dbo.clip(-5, 5).multiply(eta));
+        this.Who = this.Who.subtract(dWho.clip(-3, 3).multiply(eta));
+        this.bo = this.bo.subtract(dbo.clip(-3, 3).multiply(eta));
 
         return loss;
     }
 
-    predict(inputs_series: Matrix): Matrix {
-        if (inputs_series.shape[1] !== this.input_dim
-            || inputs_series.shape[0] !== this.seq_len) {
+    predict(inputs: Matrix): Matrix {
+        if (inputs.shape[1] !== this.input_dim
+            || inputs.shape[0] !== this.seq_len) {
             throw new Error("Input mismatch");
         }
 
-        let [states_series, outputs_series, loss] = this.feedforward(inputs_series);
-        return outputs_series;
+        let [states, outputs, loss] = this.feedforward(inputs);
+        return outputs;
     }
 };

@@ -16,15 +16,7 @@ var Matrix = (function () {
         }
     }
     Matrix.create = function (shape, callback) {
-        var arr = new Array(shape[0]);
-        for (var i = 0; i < arr.length; ++i) {
-            arr[i] = new Array(shape[1]);
-        }
-        for (var i = 0; i < shape[0]; ++i) {
-            for (var j = 0; j < shape[1]; ++j) {
-                arr[i][j] = callback([i, j]);
-            }
-        }
+        var arr = Matrix.createArray2D(shape, callback);
         return new Matrix(arr);
     };
     Matrix.eye = function (shape) {
@@ -111,11 +103,22 @@ var Matrix = (function () {
         }
         throw new Error("Axis should be either 0 or 1 but get " + axis);
     };
-    Matrix.prototype.map = function (callback) {
-        var arr = new Array(this.shape[0]);
-        for (var i = 0; i < arr.length; ++i) {
-            arr[i] = new Array(this.shape[1]);
+    Matrix.fillArray2D = function (shape, val) {
+        if (val === void 0) { val = 0; }
+        return Matrix.createArray2D(shape, function () { return val; });
+    };
+    Matrix.createArray2D = function (shape, callback) {
+        var ret = new Array(shape[0]);
+        for (var i = 0; i < shape[0]; ++i) {
+            ret[i] = new Array(shape[1]);
+            for (var j = 0; j < shape[1]; ++j) {
+                ret[i][j] = callback ? callback([i, j]) : 0;
+            }
         }
+        return ret;
+    };
+    Matrix.prototype.map = function (callback) {
+        var arr = Matrix.createArray2D(this.shape);
         for (var i = 0; i < this.shape[0]; ++i) {
             for (var j = 0; j < this.shape[1]; ++j) {
                 arr[i][j] = callback(this.get(i, j), [i, j], this);
@@ -195,13 +198,17 @@ var Matrix = (function () {
     };
     Matrix.prototype.row = function (n) {
         var _this = this;
+        if (n < 0)
+            n += this.shape[0];
         return Matrix.create([1, this.shape[1]], function (index) {
             return _this.get(n, index[1]);
         });
     };
     Matrix.prototype.col = function (n) {
         var _this = this;
-        return Matrix.create([this.shape[1], 1], function (index) {
+        if (n < 0)
+            n += this.shape[1];
+        return Matrix.create([this.shape[0], 1], function (index) {
             return _this.get(index[0], n);
         });
     };

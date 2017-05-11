@@ -19,15 +19,7 @@ export class Matrix {
     }
 
     private static create(shape: [number, number], callback: (index: [number, number]) => number) {
-        let arr = new Array(shape[0]);
-        for (let i = 0; i < arr.length; ++i) {
-            arr[i] = new Array(shape[1]);
-        }
-        for (let i = 0; i < shape[0]; ++i) {
-            for (let j = 0; j < shape[1]; ++j) {
-                arr[i][j] = callback([i, j]);
-            }
-        }
+        let arr = Matrix.createArray2D(shape, callback);
         return new Matrix(arr);
     }
 
@@ -127,11 +119,23 @@ export class Matrix {
         throw new Error("Axis should be either 0 or 1 but get " + axis);
     }
 
-    map(callback: (val: number, index: [number, number], matrix: Matrix) => number): Matrix {
-        let arr = new Array(this.shape[0]);
-        for (let i = 0; i < arr.length; ++i) {
-            arr[i] = new Array(this.shape[1]);
+    static fillArray2D(shape: [number, number], val: number = 0): number[][] {
+        return Matrix.createArray2D(shape, () => { return val; });
+    }
+
+    private static createArray2D(shape: [number, number], callback?: (index: [number, number]) => number): number[][] {
+        let ret = new Array(shape[0]);
+        for (let i = 0; i < shape[0]; ++i) {
+            ret[i] = new Array(shape[1]);
+            for (let j = 0; j < shape[1]; ++j) {
+                ret[i][j] = callback ? callback([i, j]) : 0;
+            }
         }
+        return ret;
+    }
+
+    map(callback: (val: number, index: [number, number], matrix: Matrix) => number): Matrix {
+        let arr = Matrix.createArray2D(this.shape);
         for (let i = 0; i < this.shape[0]; ++i) {
             for (let j = 0; j < this.shape[1]; ++j) {
                 arr[i][j] = callback(this.get(i, j), [i, j], this);
@@ -140,7 +144,7 @@ export class Matrix {
         return new Matrix(arr);
     }
 
-    clip(min: number, max: number) : Matrix {
+    clip(min: number, max: number): Matrix {
         return this.map(val => {
             return Math.max(Math.min(val, max), min);
         })
@@ -216,13 +220,15 @@ export class Matrix {
     }
 
     row(n: number): Matrix {
+        if (n < 0) n += this.shape[0];
         return Matrix.create([1, this.shape[1]], index => {
             return this.get(n, index[1]);
         });
     }
 
     col(n: number): Matrix {
-        return Matrix.create([this.shape[1], 1], index => {
+        if (n < 0) n += this.shape[1];
+        return Matrix.create([this.shape[0], 1], index => {
             return this.get(index[0], n);
         });
     }
