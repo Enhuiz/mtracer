@@ -96,12 +96,12 @@ export class RNN {
             if (isNaN(dhnext.get(0, 0))) throw "";
         }
 
-        this.Wih = this.Wih.subtract(dWih.multiply(eta));
-        this.Whh = this.Whh.subtract(dWhh.multiply(eta));
-        this.bh = this.bh.subtract(dbh.multiply(eta));
+        this.Wih = this.Wih.subtract(dWih.clip(-5, 5).multiply(eta));
+        this.Whh = this.Whh.subtract(dWhh.clip(-5, 5).multiply(eta));
+        this.bh = this.bh.subtract(dbh.clip(-5, 5).multiply(eta));
 
-        this.Who = this.Who.subtract(dWho.multiply(eta));
-        this.bo = this.bo.subtract(dbo.multiply(eta));
+        this.Who = this.Who.subtract(dWho.clip(-5, 5).multiply(eta));
+        this.bo = this.bo.subtract(dbo.clip(-5, 5).multiply(eta));
 
         return loss;
     }

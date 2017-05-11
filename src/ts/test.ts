@@ -12,10 +12,10 @@ console.log(y.transpose());
 console.log(Matrix.argmax(x, 0));
 console.log(Matrix.argmax(x, 1));
 
-let input_dim = 5;
+let input_dim = 10;
 let hidden_dim = 10;
-let output_dim = 5;
-let seq_len = 3;
+let output_dim = 10;
+let seq_len = 10;
 
 let inputs_series : Matrix = (()=>{
     let ret = Matrix.zeros([seq_len, input_dim]);
@@ -30,7 +30,7 @@ let targets_series : Matrix = (()=>{
     let ret = Matrix.zeros([seq_len, output_dim]);
     for (let i = 0; i < seq_len; ++i)
     {
-        ret.set(i, (i + 1) % 10, 1); 
+        ret.set(i, (i + 5) % 10, 1); 
     }
     return ret;
 })();
@@ -52,10 +52,10 @@ for (let i = 0; i < 10; ++i)
 console.log(rnn.train(
     inputs_series,
     targets_series,
-    3e-2
+    1e-1
 ));
 }
 console.log("predicting");
 let outputs_series = rnn.predict(test_inputs_series);
-console.log(outputs_series.toString());
+console.log(Matrix.argmax(test_inputs_series, 1).toString());
 console.log(Matrix.argmax(outputs_series, 1).toString());
