@@ -72,7 +72,7 @@
 
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var Matrix = (function () {
     function Matrix(arr) {
         this.shape = [arr.length, arr[0].length];
@@ -354,7 +354,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var tracer_1 = __webpack_require__(4);
 var GaitTracer = (function (_super) {
     __extends(GaitTracer, _super);
@@ -388,15 +388,15 @@ exports.GaitTracer = GaitTracer;
 
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var gait_tracer_1 = __webpack_require__(1);
 (function () {
     var cvs = document.getElementById('cvs');
     var ctx = cvs.getContext('2d');
-    var WIDTH = Math.min(window.innerWidth, window.innerHeight) * 0.8;
+    var WIDTH = Math.min(window.innerWidth, window.innerHeight) * 0.9;
     var HEIGHT = WIDTH;
     var UNIT = WIDTH / 400;
-    var RADIUS = 10 * UNIT;
+    var RADIUS = 8 * UNIT;
     cvs.setAttribute('width', WIDTH.toString());
     cvs.setAttribute('height', HEIGHT.toString());
     function drawPoint(x, y) {
@@ -447,9 +447,9 @@ var gait_tracer_1 = __webpack_require__(1);
     var targetSpan = document.getElementById('target');
     var outputSpan = document.getElementById('output');
     var lossSpan = document.getElementById('loss');
-    var gt = new gait_tracer_1.GaitTracer(20, 50, 2);
+    var gt = new gait_tracer_1.GaitTracer(15, 25, 2);
     gt.eta = 1e-2;
-    gt.run(50, function (acceleration, target, output, loss) {
+    gt.run(40, function (acceleration, target, output, loss) {
         clear();
         if (acceleration.length > 0)
             accelerationSpan.innerHTML = acceleration.map(function (val) { return val.toFixed(2); }).join(', ');
@@ -460,11 +460,11 @@ var gait_tracer_1 = __webpack_require__(1);
         if (loss)
             lossSpan.innerHTML = loss.toFixed(2);
         if (target.length == 2) {
-            ctx.fillStyle = '#00838f';
+            ctx.fillStyle = '#c77800';
             drawPoint(target[0] * WIDTH, target[1] * HEIGHT);
         }
         if (output.length == 2) {
-            ctx.fillStyle = '#c77800';
+            ctx.fillStyle = '#00838f';
             drawPoint(output[0] * WIDTH, output[1] * HEIGHT);
         }
     });
@@ -478,7 +478,7 @@ var gait_tracer_1 = __webpack_require__(1);
 
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var matrix_1 = __webpack_require__(0);
 var RNN = (function () {
     function RNN(series_len, input_dim, hidden_dim, output_dim) {
@@ -523,6 +523,7 @@ var RNN = (function () {
             throw new Error("Input mismatch");
         }
         var _a = this.feedforward(inputs, targets, prev_state), states = _a[0], outputs = _a[1], loss = _a[2];
+        // backward
         var dWih = matrix_1.Matrix.zeros([this.input_dim, this.hidden_dim]);
         var dWhh = matrix_1.Matrix.zeros([this.hidden_dim, this.hidden_dim]);
         var dbh = matrix_1.Matrix.zeros([1, this.hidden_dim]);
@@ -530,12 +531,12 @@ var RNN = (function () {
         var dbo = matrix_1.Matrix.zeros([1, this.output_dim]);
         var dhnext = matrix_1.Matrix.zeros([1, this.hidden_dim]);
         for (var t = inputs.shape[0] - 1; t >= Math.max(inputs.shape[0] - this.series_len, 0); --t) {
-            var dout = outputs.row(t).subtract(targets.row(t));
-            dWho = dWho.add(states.row(t + 1).transpose().matmul(dout));
-            dbo = dbo.add(dout);
-            var dh = dout.matmul(this.Who.transpose()).add(dhnext);
-            var dhraw = matrix_1.Matrix.tanh_d(states.row(t + 1)).multiply(dh);
-            dbh = dbh.add(dhraw);
+            var dout = outputs.row(t).subtract(targets.row(t)); // 1 * output_dim
+            dWho = dWho.add(states.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
+            dbo = dbo.add(dout); // 1 * output_dim
+            var dh = dout.matmul(this.Who.transpose()).add(dhnext); // 1 * hidden_dim
+            var dhraw = matrix_1.Matrix.tanh_d(states.row(t + 1)).multiply(dh); // 1 * hidden_dim 
+            dbh = dbh.add(dhraw); // 1 * hidden_dim
             dWhh = dWhh.add(states.row(t).transpose().matmul(dhraw));
             dWih = dWih.add(inputs.row(t).transpose().matmul(dhraw));
             dhnext = dhraw.matmul(this.Whh.transpose());
@@ -567,7 +568,7 @@ exports.RNN = RNN;
 
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var matrix_1 = __webpack_require__(0);
 var rnn_1 = __webpack_require__(3);
 var Tracer = (function () {

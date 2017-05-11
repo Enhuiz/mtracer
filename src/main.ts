@@ -5,10 +5,10 @@ import { GaitTracer } from "./gait_tracer";
     let cvs = document.getElementById('cvs');
     let ctx = cvs.getContext('2d');
 
-    let WIDTH = Math.min(window.innerWidth, window.innerHeight) * 0.8;
+    let WIDTH = Math.min(window.innerWidth, window.innerHeight) * 0.9;
     let HEIGHT = WIDTH;
     let UNIT = WIDTH / 400;
-    let RADIUS = 10 * UNIT;
+    let RADIUS = 8 * UNIT;
 
     cvs.setAttribute('width', WIDTH.toString());
     cvs.setAttribute('height', HEIGHT.toString());
@@ -70,9 +70,9 @@ import { GaitTracer } from "./gait_tracer";
     let outputSpan = document.getElementById('output');
     let lossSpan = document.getElementById('loss');
 
-    let gt = new GaitTracer(20, 50, 2);
+    let gt = new GaitTracer(15, 25, 2);
     gt.eta = 1e-2;
-    gt.run(50, (acceleration, target, output, loss) => {
+    gt.run(40, (acceleration, target, output, loss) => {
         clear();
 
         if (acceleration.length > 0)
@@ -85,12 +85,12 @@ import { GaitTracer } from "./gait_tracer";
             lossSpan.innerHTML = loss.toFixed(2);
 
         if (target.length == 2) {
-            ctx.fillStyle = '#00838f';
+            ctx.fillStyle = '#c77800';
             drawPoint(target[0] * WIDTH, target[1] * HEIGHT);
         }
 
         if (output.length == 2) {
-            ctx.fillStyle = '#c77800';
+            ctx.fillStyle = '#00838f';
             drawPoint(output[0] * WIDTH, output[1] * HEIGHT);
         }
     });
