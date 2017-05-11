@@ -7,6 +7,7 @@ export class Tracer {
     protected target_series: number[][];
     protected input_dim: number;
     protected output_dim: number;
+    protected loss: number;
 
     constructor(series_len: number, input_dim: number, hidden_dim: number, output_dim: number) {
         this.rnn = new RNN(series_len, input_dim, hidden_dim, output_dim);
@@ -24,9 +25,13 @@ export class Tracer {
             if (input && target.length === this.output_dim) {
                 this.target_series.splice(0, 1);
                 this.target_series.push(target);
-                console.log(this.rnn.train(new Matrix(this.inputs_series), new Matrix(this.target_series), eta));
+                this.loss = this.rnn.train(new Matrix(this.inputs_series), new Matrix(this.target_series), eta);
             }
         }
         return this.rnn.predict(new Matrix(this.inputs_series)).row(-1).content;
+    }
+
+    reset() {
+        this.rnn.reset();
     }
 }

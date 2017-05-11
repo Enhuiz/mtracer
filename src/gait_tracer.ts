@@ -17,11 +17,17 @@ export class GaitTracer extends Tracer {
                 this.acceleration = [event.acceleration.x || 0, event.acceleration.y || 0, event.acceleration.z || 0];
             }
         });
+
+        this.eta = 0.3;
+
+        this.target = [];
+        this.output = [];
     }
 
-    run(deltaTime: number) {
+    run(deltaTime: number, callback: (acceleration: number[], target: number[], output: number[], loss: number) => void) {
         setInterval(() => {
             this.output = super.tick(this.acceleration, this.target, this.eta);
+            callback(this.acceleration, this.target, this.output, this.loss);
         }, deltaTime);
     }
 }

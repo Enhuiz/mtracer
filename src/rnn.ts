@@ -17,15 +17,17 @@ export class RNN {
         this.input_dim = input_dim;
         this.hidden_dim = hidden_dim;
         this.output_dim = output_dim;
-
-        this.Wih = Matrix.random([input_dim, hidden_dim], -0.1, 0.1);
-        this.Whh = Matrix.random([hidden_dim, hidden_dim], -0.1, 0.1);
-        this.bh = Matrix.zeros([1, hidden_dim]);
-
-        this.Who = Matrix.random([hidden_dim, output_dim], -0.1, 0.1);
-        this.bo = Matrix.zeros([1, output_dim]);
+        this.reset();
     }
 
+    reset() {
+        this.Wih = Matrix.random([this.input_dim, this.hidden_dim], -0.1, 0.1);
+        this.Whh = Matrix.random([this.hidden_dim, this.hidden_dim], -0.1, 0.1);
+        this.bh = Matrix.zeros([1, this.hidden_dim]);
+
+        this.Who = Matrix.random([this.hidden_dim, this.output_dim], -0.1, 0.1);
+        this.bo = Matrix.zeros([1, this.output_dim]);
+    }
 
     private feedforward(inputs: Matrix, targets?: Matrix,
         prev_state: Matrix = Matrix.zeros([1, this.hidden_dim])): [Matrix, Matrix, number] {
@@ -92,16 +94,14 @@ export class RNN {
             dWih = dWih.add(inputs.row(t).transpose().matmul(dhraw));
 
             dhnext = dhraw.matmul(this.Whh.transpose());
-
-            if (isNaN(dhnext.get(0, 0))) throw Error("Nan appear when training");
         }
 
-        this.Wih = this.Wih.subtract(dWih.clip(-3, 3).multiply(eta));
-        this.Whh = this.Whh.subtract(dWhh.clip(-3, 3).multiply(eta));
-        this.bh = this.bh.subtract(dbh.clip(-3, 3).multiply(eta));
+        this.Wih = this.Wih.subtract(dWih.clip(-2, 2).multiply(eta));
+        this.Whh = this.Whh.subtract(dWhh.clip(-2, 2).multiply(eta));
+        this.bh = this.bh.subtract(dbh.clip(-2, 2).multiply(eta));
 
-        this.Who = this.Who.subtract(dWho.clip(-3, 3).multiply(eta));
-        this.bo = this.bo.subtract(dbo.clip(-3, 3).multiply(eta));
+        this.Who = this.Who.subtract(dWho.clip(-2, 2).multiply(eta));
+        this.bo = this.bo.subtract(dbo.clip(-2, 2).multiply(eta));
 
         return loss;
     }

@@ -1,12 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Gait Tracer</title>
+    <link href="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.css" rel="stylesheet">
+    <style>
+        /*body {
+            background-color: #ffa726;
+        }*/
+    </style>
 </head>
+
 <body>
-    <script src="dist/bundle.js"></script>
+
+    <h1 class="ui header center aligned">Gait Tracer</h1>
+    <center><canvas id="cvs" class="center"></canvas></center>
+    <div class="ui text container">
+
+        <table class="ui bottom attached table">
+            <thead>
+                <tr>
+                    <th>Parameters</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Acceleration</td>
+                    <td><span id="acceleration">None</span></td>
+                </tr>
+                <tr>
+                    <td>Target</td>
+                    <td><span id="target">None</span></td>
+                </tr>
+                <tr>
+                    <td>Output</td>
+                    <td><span id="output">None</span></td>
+                </tr>
+                <tr>
+                    <td>Loss</td>
+                    <td><span id="loss">None</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <center>
+            <button id="reset-btn" class="ui fluid button" style="background-color:#005662; color:white">reset</button>
+        </center>
+        <br>
+    </div>
+
 </body>
+<script src="dist/bundle.js"></script>
+
 </html>
