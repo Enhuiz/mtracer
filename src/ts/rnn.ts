@@ -18,11 +18,11 @@ export class RNN {
         this.hidden_dim = hidden_dim;
         this.output_dim = output_dim;
 
-        this.Wih = Matrix.random([input_dim, hidden_dim], 0, 0.01);
-        this.Whh = Matrix.random([hidden_dim, hidden_dim], 0, 0.01);
+        this.Wih = Matrix.random([input_dim, hidden_dim], -0.1, 0.1);
+        this.Whh = Matrix.random([hidden_dim, hidden_dim], -0.1, 0.1);
         this.bh = Matrix.zeros([1, hidden_dim]);
 
-        this.Who = Matrix.random([hidden_dim, output_dim], 0, 0.01);
+        this.Who = Matrix.random([hidden_dim, output_dim], -0.1, 0.1);
         this.bo = Matrix.zeros([1, output_dim]);
     }
 
@@ -93,7 +93,7 @@ export class RNN {
 
             dhnext = dhraw.matmul(this.Whh.transpose());
 
-            if (isNaN(dhnext.get(0, 0))) throw "";
+            if (isNaN(dhnext.get(0, 0))) throw Error("Nan appear when training");
         }
 
         this.Wih = this.Wih.subtract(dWih.clip(-5, 5).multiply(eta));
