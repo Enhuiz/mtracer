@@ -1,18 +1,6 @@
-class C
+function f(n: number)
 {
-    count()
-    {
-
-    }
+    console.log(n);
 }
 
-function f<T> ()
-{
-    let a:T;
-    return (<C>a).count();
-};
-
-
-
-
-f<C>();
+f(Number.NaN);

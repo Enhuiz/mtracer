@@ -11,13 +11,50 @@ console.log(x.matmul(y));
 console.log(y.transpose());
 
 
-let input_dim = 10
-let hidden_dim = 20
-let output_dim = 30
+let input_dim = 10;
+let hidden_dim = 20;
+let output_dim = 10;
+let seq_len = 100;
 
-let rnn = new RNN(10, input_dim, hidden_dim, output_dim);
+let inputs_series : Matrix = (()=>{
+    let ret = Matrix.zeros([seq_len, input_dim]);
+    for (let i = 0; i < seq_len; ++i)
+    {
+        ret.set(i, i % 10, 1); 
+    }
+    return ret;
+})();
+
+let targets_series : Matrix = (()=>{
+    let ret = Matrix.zeros([seq_len, output_dim]);
+    for (let i = 0; i < seq_len; ++i)
+    {
+        ret.set(i, (i + 1) % 10, 1); 
+    }
+    return ret;
+})();
+
+let test_inputs_series : Matrix = (()=>{
+    let ret = Matrix.zeros([seq_len, input_dim]);
+    for (let i = 0; i < seq_len; ++i)
+    {
+        ret.set(i, (i + 2) % 10, 1); 
+    }
+    return ret;
+})();
+
+
+let rnn = new RNN(seq_len, input_dim, hidden_dim, output_dim);
+console.log("training");
+for (let i = 0; i < 2; ++i)
+{
 rnn.train(
-    [Matrix.zeros([1, input_dim])],
-    [Matrix.zeros([1, output_dim])],
-    0.3
+    inputs_series,
+    targets_series,
+    1e-5
 );
+}
+console.log("predicting");
+let outputs_series = rnn.predict(test_inputs_series);
+console.log(outputs_series.toString());
+console.log(Matrix.argmax(outputs_series, 1).toString());

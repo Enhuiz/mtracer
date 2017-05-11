@@ -1,13 +1,4 @@
-function f() {
-    var a;
-    return a.count();
+function f(n) {
+    console.log(n);
 }
-;
-var C = (function () {
-    function C() {
-    }
-    C.prototype.count = function () {
-    };
-    return C;
-}());
-f();
+f(Number.NaN);

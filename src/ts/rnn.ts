@@ -18,8 +18,6 @@ export class RNN {
         this.hidden_dim = hidden_dim;
         this.output_dim = output_dim;
 
-        // this.Wih = Matrix.zeros([input_dim, hidden_dim]);
-        // this.Whh = Matrix.zeros([hidden_dim, hidden_dim]);
         this.Wih = Matrix.random([input_dim, hidden_dim], 0, 1);
         this.Whh = Matrix.random([hidden_dim, hidden_dim], 0, 1);
         this.bh = Matrix.zeros([1, hidden_dim]);
@@ -30,36 +28,42 @@ export class RNN {
 
 
     feedforward(inputs_series: Matrix, targets_series?: Matrix,
-        prev_state: Matrix = Matrix.zeros([1, this.hidden_dim]))
-        : [Matrix, Matrix, number] {
+        prev_state: Matrix = Matrix.zeros([1, this.hidden_dim])): [Matrix, Matrix, number] {
 
         let states_series: Matrix = Matrix.zeros([inputs_series.shape[0] + 1, this.hidden_dim]);
-        let outputs_series: Matrix = Matrix.zeros([targets_series.shape[0], this.output_dim]);
+        let outputs_series: Matrix = Matrix.zeros([inputs_series.shape[0], this.output_dim]);
         let loss = 0;
 
         for (let t = 0; t < inputs_series.shape[0]; ++t) {
             states_series.setRow(t,
                 Matrix.tanh(
-                    inputs_series[t].matmul(this.Wih)
-                        .add(states_series[t].matmul(this.Whh))
+                    inputs_series.row(t).matmul(this.Wih)
+                        .add(states_series.row(t).matmul(this.Whh))
                         .add(this.bh)
                 ));
 
-            outputs_series.setRow(t + 1, states_series[t].matmul(this.Who).add(this.bo));
+            outputs_series.setRow(t + 1, states_series.row(t).matmul(this.Who).add(this.bo));
 
             if (targets_series) {
-                loss += Matrix.reduce_sum(Matrix.pow(
-                    targets_series[t].subtract(outputs_series[t]),
+                loss += Matrix.sum(Matrix.pow(
+                    targets_series.row(t).subtract(outputs_series.row(t)),
                     2
                 ));
             }
         }
-
         return [states_series, outputs_series, loss];
     }
 
     train(inputs_series: Matrix, targets_series: Matrix,
         eta: number = 0.3, prev_state: Matrix = Matrix.zeros([1, this.hidden_dim])): number {
+        if (inputs_series.shape[1] !== this.input_dim
+            || targets_series.shape[1] !== this.output_dim
+            || prev_state.shape[1] !== this.hidden_dim
+            || inputs_series.shape[0] !== this.seq_len
+            || targets_series.shape[0] !== this.seq_len) {
+            throw new Error("Input mismatch");
+        }
+
         let [states_series, outputs_series, loss] = this.feedforward(inputs_series, targets_series, prev_state);
 
         // backward
@@ -84,7 +88,7 @@ export class RNN {
             dWhh = dWhh.add(states_series.row(t).transpose().matmul(dhraw));
             dWih = dWih.add(inputs_series.row(t).transpose().matmul(states_series.row(t)));
 
-            dhnext = this.Whh.matmul(dhraw);
+            dhnext = dhraw.matmul(this.Whh.transpose());
         }
 
         this.Wih = this.Wih.add(dWih.multiply(-eta));
@@ -94,11 +98,20 @@ export class RNN {
         this.Who = this.Who.add(dWho.multiply(-eta));
         this.bo = this.bo.add(dbo.multiply(-eta));
 
+        // console.log(this.Wih.toString());
+        // console.log(this.Whh.toString());
+        // console.log(this.bh.toString());
+        // console.log(this.Who.toString());
+        // console.log(this.bo.toString());
         return loss;
     }
 
-    predict(inputs_series : Matrix) : Matrix
-    {
+    predict(inputs_series: Matrix): Matrix {
+        if (inputs_series.shape[1] !== this.input_dim
+            || inputs_series.shape[0] !== this.seq_len) {
+            throw new Error("Input mismatch");
+        }
+
         let [states_series, outputs_series, loss] = this.feedforward(inputs_series);
         return outputs_series;
     }
