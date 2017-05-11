@@ -7,10 +7,10 @@ var RNN = (function () {
         this.input_dim = input_dim;
         this.hidden_dim = hidden_dim;
         this.output_dim = output_dim;
-        this.Wih = matrix_1.Matrix.random([input_dim, hidden_dim], 0, 1);
-        this.Whh = matrix_1.Matrix.random([hidden_dim, hidden_dim], 0, 1);
+        this.Wih = matrix_1.Matrix.random([input_dim, hidden_dim], 0, 0.01);
+        this.Whh = matrix_1.Matrix.random([hidden_dim, hidden_dim], 0, 0.01);
         this.bh = matrix_1.Matrix.zeros([1, hidden_dim]);
-        this.Who = matrix_1.Matrix.random([hidden_dim, output_dim], 0, 1);
+        this.Who = matrix_1.Matrix.random([hidden_dim, output_dim], 0, 0.01);
         this.bo = matrix_1.Matrix.zeros([1, output_dim]);
     }
     RNN.prototype.feedforward = function (inputs_series, targets_series, prev_state) {
@@ -18,13 +18,14 @@ var RNN = (function () {
         var states_series = matrix_1.Matrix.zeros([inputs_series.shape[0] + 1, this.hidden_dim]);
         var outputs_series = matrix_1.Matrix.zeros([inputs_series.shape[0], this.output_dim]);
         var loss = 0;
+        states_series.setRow(0, prev_state);
         for (var t = 0; t < inputs_series.shape[0]; ++t) {
-            states_series.setRow(t, matrix_1.Matrix.tanh(inputs_series.row(t).matmul(this.Wih)
+            states_series.setRow(t + 1, matrix_1.Matrix.tanh(inputs_series.row(t).matmul(this.Wih)
                 .add(states_series.row(t).matmul(this.Whh))
                 .add(this.bh)));
-            outputs_series.setRow(t + 1, states_series.row(t).matmul(this.Who).add(this.bo));
+            outputs_series.setRow(t, states_series.row(t + 1).matmul(this.Who).add(this.bo));
             if (targets_series) {
-                loss += matrix_1.Matrix.sum(matrix_1.Matrix.pow(targets_series.row(t).subtract(outputs_series.row(t)), 2));
+                loss += matrix_1.Matrix.mean(matrix_1.Matrix.pow(outputs_series.row(t).subtract(targets_series.row(t)), 2));
             }
         }
         return [states_series, outputs_series, loss];
@@ -47,27 +48,34 @@ var RNN = (function () {
         var dWho = matrix_1.Matrix.zeros([this.hidden_dim, this.output_dim]);
         var dbo = matrix_1.Matrix.zeros([1, this.output_dim]);
         var dhnext = matrix_1.Matrix.zeros([1, this.hidden_dim]);
+        // console.log("\nWih\n" + this.Wih.toString());
+        // console.log("\nWhh\n" + this.Whh.toString());
+        // console.log("\nbh.\n" + this.bh.toString());
+        // console.log("\nWho\n" + this.Who.toString());
+        // console.log("\nbo.\n" + this.bo.toString());
         for (var t = inputs_series.shape[0] - 1; t >= Math.max(inputs_series.shape[0] - this.seq_len, 0); --t) {
-            var dout = targets_series.row(t).subtract(outputs_series.row(t)); // 1 * output_dim
+            var dout = outputs_series.row(t).subtract(targets_series.row(t)); // 1 * output_dim
             dWho = dWho.add(states_series.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
             dbo = dbo.add(dout); // 1 * output_dim
             var dh = dout.matmul(this.Who.transpose()).add(dhnext); // 1 * hidden_dim
-            var dhraw = matrix_1.Matrix.pow(states_series.row(t + 1), 2).neg().add(1).multiply(dh); // 1 * hidden_dim
+            // console.log("---------------------------------------");
+            // console.log(dh.toString());
+            // console.log(Matrix.pow(states_series.row(t + 1), 2).neg().toString());
+            // let dhraw = Matrix.pow(states_series.row(t + 1), 2).neg().add(1).multiply(dh); // 1 * hidden_dim
+            var dhraw = matrix_1.Matrix.tanh_d(states_series.row(t + 1)).multiply(dh); // 1 * hidden_dim 
             dbh = dbh.add(dhraw); // 1 * hidden_dim
             dWhh = dWhh.add(states_series.row(t).transpose().matmul(dhraw));
-            dWih = dWih.add(inputs_series.row(t).transpose().matmul(states_series.row(t)));
+            dWih = dWih.add(inputs_series.row(t).transpose().matmul(dhraw));
             dhnext = dhraw.matmul(this.Whh.transpose());
+            // console.log(dhnext.toString());
+            if (isNaN(dhnext.get(0, 0)))
+                throw "";
         }
-        this.Wih = this.Wih.add(dWih.multiply(-eta));
-        this.Whh = this.Whh.add(dWhh.multiply(-eta));
-        this.bh = this.bh.add(dbh.multiply(-eta));
-        this.Who = this.Who.add(dWho.multiply(-eta));
-        this.bo = this.bo.add(dbo.multiply(-eta));
-        // console.log(this.Wih.toString());
-        // console.log(this.Whh.toString());
-        // console.log(this.bh.toString());
-        // console.log(this.Who.toString());
-        // console.log(this.bo.toString());
+        this.Wih = this.Wih.subtract(dWih.multiply(eta));
+        this.Whh = this.Whh.subtract(dWhh.multiply(eta));
+        this.bh = this.bh.subtract(dbh.multiply(eta));
+        this.Who = this.Who.subtract(dWho.multiply(eta));
+        this.bo = this.bo.subtract(dbo.multiply(eta));
         return loss;
     };
     RNN.prototype.predict = function (inputs_series) {

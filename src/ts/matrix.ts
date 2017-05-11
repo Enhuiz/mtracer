@@ -18,14 +18,14 @@ export class Matrix {
         }
     }
 
-    private static create(shape: [number, number], element_wise_setter: (index: [number, number]) => number) {
+    private static create(shape: [number, number], callback: (index: [number, number]) => number) {
         let arr = new Array(shape[0]);
         for (let i = 0; i < arr.length; ++i) {
             arr[i] = new Array(shape[1]);
         }
         for (let i = 0; i < shape[0]; ++i) {
             for (let j = 0; j < shape[1]; ++j) {
-                arr[i][j] = element_wise_setter([i, j]);
+                arr[i][j] = callback([i, j]);
             }
         }
         return new Matrix(arr);
@@ -55,6 +55,19 @@ export class Matrix {
         return mat.map((val) => { return (Math.exp(val) - Math.exp(-val)) / (Math.exp(val) + Math.exp(-val)); });
     }
 
+    static tanh_d(mat: Matrix): Matrix {
+        return Matrix.pow(Matrix.tanh(mat), 2).neg().add(1);
+    }
+
+
+    static sigmoid(mat: Matrix): Matrix {
+        return mat.map((val) => { return 1 / (1 + Math.exp(-val)); });
+    }
+
+    static sigmoid_d(mat: Matrix): Matrix {
+        return Matrix.sigmoid(mat).multiply(Matrix.sigmoid(mat).neg().add(1));
+    }
+
     static exp(mat: Matrix): Matrix {
         return mat.map((val) => { return Math.exp(val); });
     }
@@ -77,32 +90,60 @@ export class Matrix {
         }
     }
 
-    static argmax(mat: Matrix, axis?: number): Matrix {
+    static mean(mat: Matrix, axis?: number): number {
         if (axis) {
-            if (axis != 0 && axis != 1) {
-                throw new Error("Axis should be either 0 or 1 but get " + axis);
-            }
-            let sum = mat.slice(0, axis);
-            for (let i = 1; i < mat.shape[0]; ++i) {
-                sum.add(mat.slice(i, axis));
-            }
-            return sum;
-        } else {
             throw new Error("not implemented");
+        } else {
+            let sum = 0;
+            for (let i = 0; i < mat.shape[0]; ++i) {
+                let subsum = 0;
+                for (let j = 0; j < mat.shape[1]; ++j) {
+                    subsum += mat.get(i, j);
+                }
+                sum += subsum / mat.shape[1];
+            }
+            return sum / mat.shape[1];
         }
     }
 
-    map(element_wise_setter: (val: number, index: [number, number], matrix: Matrix) => number): Matrix {
+    static argmax(mat: Matrix, axis: number): Matrix {
+        if (axis === 0) {
+            return Matrix.create([1, mat.shape[1]], (index) => {
+                let ret = 0;
+                for (let i = 1; i < mat.shape[0]; ++i) { // for each row
+                    ret = mat.get(i, index[1]) > mat.get(ret, index[1]) ? i : ret;
+                }
+                return ret;
+            });
+        } else if (axis === 1) {
+            return Matrix.create([mat.shape[0], 1], (index) => {
+                let ret = 0;
+                for (let j = 1; j < mat.shape[1]; ++j) { // for each col
+                    ret = mat.get(index[0], j) > mat.get(index[0], ret) ? j : ret;
+                }
+                return ret;
+            });
+        }
+        throw new Error("Axis should be either 0 or 1 but get " + axis);
+    }
+
+    map(callback: (val: number, index: [number, number], matrix: Matrix) => number): Matrix {
         let arr = new Array(this.shape[0]);
         for (let i = 0; i < arr.length; ++i) {
             arr[i] = new Array(this.shape[1]);
         }
         for (let i = 0; i < this.shape[0]; ++i) {
             for (let j = 0; j < this.shape[1]; ++j) {
-                arr[i][j] = element_wise_setter(this.get(i, j), [i, j], this);
+                arr[i][j] = callback(this.get(i, j), [i, j], this);
             }
         }
         return new Matrix(arr);
+    }
+
+    clip(min: number, max: number) : Matrix {
+        return this.map(val => {
+            return Math.max(Math.min(val, max), min);
+        })
     }
 
     add(other: Matrix | number): Matrix {
@@ -117,7 +158,7 @@ export class Matrix {
         if (other instanceof Matrix) {
             return this.map((val, index, matrix) => { return val - other.get(index); })
         } else {
-            return this.map((val) => { return val + other; })
+            return this.map((val) => { return val - other; })
         }
     }
 
@@ -125,7 +166,7 @@ export class Matrix {
         if (other instanceof Matrix) {
             return this.map((val, index, matrix) => { return val * other.get(index); })
         } else {
-            return this.map((val) => { return val + other; })
+            return this.map((val) => { return val * other; })
         }
     }
 
@@ -144,6 +185,19 @@ export class Matrix {
             }
         }
         return ret;
+    }
+
+    transpose(): Matrix {
+        let ret = Matrix.zeros([this.shape[1], this.shape[0]]);
+        return ret.map((val, index) => {
+            return this.get(index[1], index[0]);
+        });
+    }
+
+    neg(): Matrix {
+        return this.map((val) => {
+            return -val;
+        });
     }
 
     get(i: number, j: number);
@@ -205,19 +259,6 @@ export class Matrix {
         this.content[i * this.shape[1] + j] = val;
     }
 
-    transpose(): Matrix {
-        let ret = Matrix.zeros([this.shape[1], this.shape[0]]);
-        return ret.map((val, index) => {
-            return this.get(index[1], index[0]);
-        });
-    }
-
-    neg(): Matrix {
-        return this.map((val) => {
-            return -val;
-        });
-    }
-
     toString(): string {
         let ret = '[\n';
         for (let i = 0; i < this.shape[0]; ++i) {
@@ -234,6 +275,4 @@ export class Matrix {
         ret += '\n]';
         return ret;
     }
-
-
 };

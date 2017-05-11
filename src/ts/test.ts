@@ -1,7 +1,7 @@
 import { Matrix } from "./matrix";
 import { RNN } from "./rnn";
 
-let x: Matrix = new Matrix([[1, 2], [3, 4]]);
+let x: Matrix = new Matrix([[1, 0], [3, 4]]);
 let y: Matrix = new Matrix([[5, 6], [7, 8]]);
 
 console.log(x.add(y));
@@ -9,12 +9,13 @@ console.log(x.subtract(y));
 console.log(x.multiply(y));
 console.log(x.matmul(y));
 console.log(y.transpose());
+console.log(Matrix.argmax(x, 0));
+console.log(Matrix.argmax(x, 1));
 
-
-let input_dim = 10;
-let hidden_dim = 20;
-let output_dim = 10;
-let seq_len = 100;
+let input_dim = 5;
+let hidden_dim = 10;
+let output_dim = 5;
+let seq_len = 3;
 
 let inputs_series : Matrix = (()=>{
     let ret = Matrix.zeros([seq_len, input_dim]);
@@ -46,13 +47,13 @@ let test_inputs_series : Matrix = (()=>{
 
 let rnn = new RNN(seq_len, input_dim, hidden_dim, output_dim);
 console.log("training");
-for (let i = 0; i < 2; ++i)
+for (let i = 0; i < 10; ++i)
 {
-rnn.train(
+console.log(rnn.train(
     inputs_series,
     targets_series,
-    1e-5
-);
+    3e-2
+));
 }
 console.log("predicting");
 let outputs_series = rnn.predict(test_inputs_series);
