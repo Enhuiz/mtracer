@@ -77,7 +77,7 @@ let targetSpan = $('#target-span');
 let outputSpan = $('#output-span');
 let lossSpan = $('#loss-span');
 
-let mt = new TipTracer(10, 15);
+let mt = new TipTracer(15, 30);
 
 mt.run((target, output, loss) => {
     clear();

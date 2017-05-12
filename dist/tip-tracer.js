@@ -575,7 +575,7 @@ cvs.addEventListener("touchend", function (e) {
 var targetSpan = $('#target-span');
 var outputSpan = $('#output-span');
 var lossSpan = $('#loss-span');
-var mt = new tip_tracer_1.TipTracer(10, 15);
+var mt = new tip_tracer_1.TipTracer(15, 30);
 mt.run(function (target, output, loss) {
     clear();
     targetSpan.text(target.length > 0 ? target.map(function (val) { return val.toFixed(2); }).join(', ') : '-');
