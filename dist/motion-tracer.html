@@ -26,58 +26,61 @@
     </div>
 
     <center><canvas id="cvs" class="center"></canvas></center>
+    <br>
 
-    <div id="monitor" class="ui text container">
-        <div class="">
-            <div class="statistic">
-                <div class="label">
-                    Acceleration
-                </div>
-                <div class="value">
-                    {{mt.accelerationEnabled ? mt.acceleration.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
-                </div>
-            </div>
-            <div class="statistic">
-                <div class="label">
-                    Orientation
-                </div>
-                <div class="value">
-                    {{mt.orientationEnabled ? mt.orientation.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
-                </div>
-            </div>
-            <div class="statistic">
+    <center>
+        <div id="monitor" class="ui text container">
+            <div class="mini statistic">
                 <div class="label">
                     Loss
                 </div>
                 <div class="value">
-                    {{mt.loss ? mt.loss.toFixed(2) : "-"}}
+                    <span id="loss-span"> </span>
                 </div>
             </div>
-            <div class="statistic">
+            <div class="mini statistic">
+                <div class="label">
+                    Acceleration
+                </div>
+                <div class="value">
+                    <span id="acceleration-span"> </span>
+                </div>
+            </div>
+            <div class="mini statistic">
+                <div class="label">
+                    Orientation
+                </div>
+                <div class="value">
+                    <span id="orientation-span"> </span>
+                </div>
+            </div>
+
+            <!--<div class="mini statistic">
                 <div class="label">
                     You
                 </div>
                 <div class="value">
-                    {{mt.target.length > 0 ? mt.target.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
+                    <span id="target-span"> </span>
                 </div>
             </div>
-            <div class="statistic">
+            <div class="mini statistic">
                 <div class="label">
                     Tracer
                 </div>
                 <div class="value">
-                    {{mt.output.length > 0 ? mt.output.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
+                    <span id="output-span"> </span>
                 </div>
-            </div>
+            </div>-->
         </div>
-    </div>
-
+    </center>
     <br>
     <center>
-        <button id="setting-btn" class="ui large black basic button">Setting Panel</button>
-        <button id="reset-btn" class="ui large black basic button">Reset Tracer</button>
+        <button id="setting-btn" class="ui mini black basic button">Setting Panel</button>
+        <button id="hide-monitor-btn" class="ui mini black basic button">Hide Monitor</button>
+        <button id="reset-btn" class="ui mini black basic button">Reset Tracer</button>
     </center>
 
+    <br>
     <div id="settings" class="ui modal">
         <br>
         <br>
@@ -93,13 +96,13 @@
                                 </span>
                             </td>
                             <td class="two wide">
-                                <div class="ui basic label"> {{mt.eta.toFixed(2)}} </div>
+                                <div class="ui basic label"> <span id="eta-span"><span> </div>
                             </td>
                             <td class="two wide">
                                 <div class="ui mini buttons">
-                                    <button class="ui mini button" @click="updateLearningRate($event, -1)" :disabled="mt.eta <= 0.01"><i class="small minus icon"></i></button>
+                                    <button id="subtract-eta-btn" class="ui mini button"><i class="small minus icon"></i></button>
                                     <div class="or"></div>
-                                    <button class="ui mini button" @click="updateLearningRate($event, 1)" :disabled="mt.eta >= 0.09"><i class=" small plus icon "></i></button>
+                                    <button id="add-eta-btn" class="ui mini button" ><i class=" small plus icon "></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -110,61 +113,55 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="ui basic label "> {{mt.framePerSecond}} </div>
+                                <div class="ui basic label "> <span id="fps-span"></span> </div>
                             </td>
                             <td>
                                 <div class="ui mini buttons ">
-                                    <button class="ui mini button " @click="updateFramePerSecond($event, -1) " :disabled="mt.framePerSecond <= 20"><i class="small minus icon "></i></button>
-                                    <div class="or "></div>
-                                    <button class="ui mini button " @click="updateFramePerSecond($event, 1) " :disabled="mt.framePerSecond >= 60"><i class="small plus icon"></i></button>
+                                    <button id="subtract-fps-btn" class="ui mini button"><i class="small minus icon"></i></button>
+                                    <div class="or"></div>
+                                    <button id="add-fps-btn" class="ui mini button"><i class=" small plus icon "></i></button>
                                 </div>
                             </td>
                         </tr>
                         <tr>
                             <td>
-                                <span class="ui black label"> 
-                                Acceleration
+                                <span class="ui black label "> 
+                                Use Acceleration
                                 </span>
                             </td>
                             <td>
-                                <div class="ui basic label"> {{mt.accelerationEnabled ? 'On' : 'Off'}} </div>
+                                <div class="ui basic label "> <span id="acc-span"></span> </div>
                             </td>
                             <td>
-                                <button class="ui mini basic button" @click="toggleAcceleration($event, !mt.accelerationEnabled)">
-                                    <i v-if="mt.accelerationEnabled" class="toggle on icon"></i>
-                                    <i v-if="!mt.accelerationEnabled" class="toggle off icon"></i>
-                                </button>
+                                <button id="toggle-acc-btn" class="ui mini button "></button>
                             </td>
                         </tr>
                         <tr>
                             <td>
-                                <span class="ui black label"> 
-                                Orientation
+                                <span class="ui black label "> 
+                                Use Orientation
                                 </span>
                             </td>
                             <td>
-                                <div class="ui basic label"> {{mt.orientationEnabled ? 'On' : 'Off'}} </div>
+                                <div class="ui basic label "> <span id="ori-span"></span> </div>
                             </td>
                             <td>
-                                <button class="ui mini basic button" @click="toggleOrientation($event, !mt.orientationEnabled)">
-                                    <i v-if=" mt.orientationEnabled " class="toggle on icon "></i>
-                                    <i v-if="!mt.orientationEnabled" class="toggle off icon"></i>
-                                </button>
+                                <button id="toggle-ori-btn" class="ui mini button "></button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <button class="ui button black" @click="hideModal">Go Back</button>
+                <button class="ui button black " id="go-back-btn">Go Back</button>
                 <br>
                 <br>
             </center>
+            </div>
         </div>
-    </div>
 
 </body>
-<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js"></script>
-<script src="https://cdn.bootcss.com/vue/2.3.2/vue.min.js"></script>
-<script src="motion-tracer.js"></script>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js "></script>
+<script src="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js "></script>
+<script src="https://cdn.bootcss.com/vue/2.3.2/vue.min.js "></script>
+<script src="motion-tracer.js "></script>
 
 </html>

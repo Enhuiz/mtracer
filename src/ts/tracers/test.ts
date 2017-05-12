@@ -12,7 +12,7 @@ import { ExecTimer } from "../utils/exec_timer"
     let series_len = 1000;
 
     function series_start_at(series_len: number, input_dim: number, n: number): number[][] {
-        let ret = Matrix.fillArray2D([series_len, input_dim]);
+        let ret = new Matrix([series_len, input_dim]).toArray2D();
         for (let i = 0; i < series_len; ++i) {
             ret[i][(i + n) % 10] = 1;
         }

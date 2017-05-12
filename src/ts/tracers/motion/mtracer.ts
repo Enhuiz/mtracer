@@ -6,11 +6,11 @@ export class MTracer extends Tracer {
 
     accelerationEnabled: boolean;
     orientationEnabled: boolean;
-
-    framePerSecond: number;
     eta: number
     target: number[]
-    output: number[]
+    framePerSecond: number;
+
+    private output: number[]
 
     constructor(series_len: number, hidden_dim: number) {
         super(series_len, 6, hidden_dim, 2);
@@ -38,24 +38,27 @@ export class MTracer extends Tracer {
         this.orientation = [];
         this.target = [];
         this.output = [];
-        this.eta = 0.05;
-        this.framePerSecond = 50;
+        this.eta = 0.02;
+        this.framePerSecond = 60;
     }
 
-    run(callback?: (acceleration: number[], target: number[], output: number[], loss: number) => void) {
+    run(callback: (acceleration: number[], orientation: number[], target: number[], output: number[], loss: number) => void) {
         setTimeout(() => { this.frame(callback); }, 1000 / this.framePerSecond);
     }
 
-    private frame(callback?: (acceleration: number[], target: number[], output: number[], loss: number) => void) {
+    private frame(callback?: (acceleration: number[], orientation: number[], target: number[], output: number[], loss: number) => void) {
         let input = []
             .concat(this.accelerationEnabled && this.acceleration.length > 0 ? this.acceleration : [0, 0, 0])
             .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
+
         if (input.length === 6) {
             this.output = super.update(input, this.target, this.eta);
         }
+
         if (callback) {
-            callback(this.acceleration, this.target, this.output, this.loss);
+            callback(this.acceleration, this.orientation, this.target, this.output, this.loss);
         }
+
         setTimeout(() => { this.frame(callback); }, 1000 / this.framePerSecond);
     }
 

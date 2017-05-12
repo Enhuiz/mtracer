@@ -51,7 +51,6 @@ export class Matrix {
         return Matrix.pow(Matrix.tanh(mat), 2).neg().add(1);
     }
 
-
     static sigmoid(mat: Matrix): Matrix {
         return mat.map((val) => { return 1 / (1 + Math.exp(-val)); });
     }
@@ -119,16 +118,12 @@ export class Matrix {
         throw new Error("Axis should be either 0 or 1 but get " + axis);
     }
 
-    static fillArray2D(shape: [number, number], val: number = 0): number[][] {
-        return Matrix.createArray2D(shape, () => { return val; });
-    }
-
-    private static createArray2D(shape: [number, number], callback?: (index: [number, number]) => number): number[][] {
-        let ret = new Array(shape[0]);
-        for (let i = 0; i < shape[0]; ++i) {
-            ret[i] = new Array(shape[1]);
-            for (let j = 0; j < shape[1]; ++j) {
-                ret[i][j] = callback ? callback([i, j]) : 0;
+    toArray2D(): number[][] {
+        let ret = new Array(this.shape[0]);
+        for (let i = 0; i < this.shape[0]; ++i) {
+            ret[i] = new Array(this.shape[1]);
+            for (let j = 0; j < this.shape[1]; ++j) {
+                ret[i][j] = this.get(i, j);
             }
         }
         return ret;
@@ -136,7 +131,7 @@ export class Matrix {
 
     map(callback: (val: number, index: [number, number], matrix: Matrix) => number): Matrix {
         return new Matrix(this.shape, index => {
-            return callback(this.get(index), index, this);
+            return callback(this.get(index[0], index[1]), index, this);
         });
     }
 
@@ -148,27 +143,62 @@ export class Matrix {
 
     add(other: Matrix | number): Matrix {
         if (other instanceof Matrix) {
-            return this.map((val, index, matrix) => { return val + other.get(index); })
+            return this.map((val, index, matrix) => { return val + other.get(index[0], index[1]); })
         } else {
             return this.map((val) => { return val + other; })
         }
     }
 
+    foreach(callback: (val: number, index: [number, number], matrix: Matrix) => void): void {
+        for (let i = 0; i < this.shape[0]; ++i) {
+            for (let j = 0; j < this.shape[1]; ++j) {
+                callback(this.get(i, j), [i, j], this);
+            }
+        }
+    }
+
+    addAssign(other: Matrix | number): void {
+        if (other instanceof Matrix) {
+            return this.foreach((val, index, matrix) => { matrix.set(index[0], index[1], val + other.get(index[0], index[1])); })
+        } else {
+            return this.foreach((val, index, matrix) => { matrix.set(index[0], index[1], val + other); })
+        }
+    }
+
     subtract(other: Matrix | number): Matrix {
         if (other instanceof Matrix) {
-            return this.map((val, index, matrix) => { return val - other.get(index); })
+            return this.map((val, index, matrix) => { return val - other.get(index[0], index[1]); })
         } else {
             return this.map((val) => { return val - other; })
         }
     }
 
+
+    subtractAssign(other: Matrix | number): void {
+        if (other instanceof Matrix) {
+            return this.foreach((val, index, matrix) => { matrix.set(index[0], index[1], val - other.get(index[0], index[1])); })
+        } else {
+            return this.foreach((val, index, matrix) => { matrix.set(index[0], index[1], val - other); })
+        }
+    }
+
+
     multiply(other: Matrix | number): Matrix {
         if (other instanceof Matrix) {
-            return this.map((val, index, matrix) => { return val * other.get(index); })
+            return this.map((val, index, matrix) => { return val * other.get(index[0], index[1]); })
         } else {
             return this.map((val) => { return val * other; })
         }
     }
+
+    multiplyAssign(other: Matrix | number): void {
+        if (other instanceof Matrix) {
+            return this.foreach((val, index, matrix) => { matrix.set(index[0], index[1], val * other.get(index[0], index[1])); })
+        } else {
+            return this.foreach((val, index, matrix) => { matrix.set(index[0], index[1], val * other); })
+        }
+    }
+
 
     matmul(other: Matrix): Matrix {
         if (this.shape[1] !== other.shape[0]) {
@@ -188,8 +218,7 @@ export class Matrix {
     }
 
     transpose(): Matrix {
-        let ret = Matrix.zeros([this.shape[1], this.shape[0]]);
-        return ret.map((val, index) => {
+        return new Matrix([this.shape[1], this.shape[0]], index => {
             return this.get(index[1], index[0]);
         });
     }
@@ -198,21 +227,6 @@ export class Matrix {
         return this.map((val) => {
             return -val;
         });
-    }
-
-    get(i: number, j: number): number;
-    get(i: [number, number]): number;
-    get(i: number | [number, number], j?: number): number {
-        let offset;
-        if (typeof i === 'number' && typeof j === 'number') {
-            offset = i * this.shape[1] + j;
-        } else {
-            offset = (<[number, number]>i)[0] * this.shape[1] + (<[number, number]>i)[1];
-        }
-        if (offset >= this.content.length) {
-            throw new Error("Index " + [i, j] + " out range");
-        }
-        return this.content[offset];
     }
 
     row(n: number): Matrix {
@@ -257,8 +271,20 @@ export class Matrix {
         }
     }
 
-    set(i: number, j: number, val: number) {
-        this.content[i * this.shape[1] + j] = val;
+    get(i: number, j: number): number {
+        let offset = i * this.shape[1] + j;
+        if (offset >= this.content.length) {
+            throw new Error("Index " + [i, j] + " out range");
+        }
+        return this.content[offset];
+    }
+
+    set(i: number, j: number, val: number): void {
+        let offset = i * this.shape[1] + j;
+        if (offset >= this.content.length) {
+            throw new Error("Index " + [i, j] + " out range");
+        }
+        this.content[offset] = val;
     }
 
     toString(): string {

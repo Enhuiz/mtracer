@@ -1,5 +1,5 @@
 module.exports = [{
-    entry: "./src/tracers/motion/app.ts",
+    entry: "./src/ts/tracers/motion/app.ts",
     output: {
         filename: "motion-tracer.js",
         path: __dirname + "/dist"

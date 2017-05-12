@@ -74,38 +74,38 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var Matrix = (function () {
-    function Matrix(arr) {
-        this.shape = [arr.length, arr[0].length];
-        for (var i = 0; i < this.shape[0]; ++i) {
-            if (arr[i].length != this.shape[1]) {
-                throw new Error("Invalid shape");
-            }
-        }
+    function Matrix(shape, callback) {
+        this.shape = shape;
         this.content = new Array(this.shape[0] * this.shape[1]);
         for (var i = 0; i < this.shape[0]; ++i) {
             for (var j = 0; j < this.shape[1]; ++j) {
-                this.set(i, j, arr[i][j]);
+                this.set(i, j, callback ? callback([i, j]) : 0);
             }
         }
     }
-    Matrix.create = function (shape, callback) {
-        var arr = Matrix.createArray2D(shape, callback);
-        return new Matrix(arr);
+    Matrix.createFromArray2D = function (arr) {
+        var shape = [arr.length, arr[0].length];
+        for (var i = 0; i < shape[0]; ++i) {
+            if (arr[i].length != shape[1]) {
+                throw new Error("Invalid shape");
+            }
+        }
+        return new Matrix(shape, function (index) { return arr[index[0]][index[1]]; });
     };
     Matrix.eye = function (shape) {
-        return Matrix.create(shape, function (index) { return index[0] === index[1] ? 1 : 0; });
+        return new Matrix(shape, function (index) { return index[0] === index[1] ? 1 : 0; });
     };
     Matrix.zeros = function (shape) {
-        return Matrix.create(shape, function () { return 0; });
+        return new Matrix(shape);
     };
     Matrix.ones = function (shape) {
-        return Matrix.create(shape, function () { return 1; });
+        return new Matrix(shape, function () { return 1; });
     };
     Matrix.full = function (shape, val) {
-        return Matrix.create(shape, function () { return val; });
+        return new Matrix(shape, function () { return val; });
     };
     Matrix.random = function (shape, max, min) {
-        return Matrix.create(shape, function () { return min + Math.random() * (max - min); });
+        return new Matrix(shape, function () { return min + Math.random() * (max - min); });
     };
     Matrix.tanh = function (mat) {
         return mat.map(function (val) { return (Math.exp(val) - Math.exp(-val)) / (Math.exp(val) + Math.exp(-val)); });
@@ -157,7 +157,7 @@ var Matrix = (function () {
     };
     Matrix.argmax = function (mat, axis) {
         if (axis === 0) {
-            return Matrix.create([1, mat.shape[1]], function (index) {
+            return new Matrix([1, mat.shape[1]], function (index) {
                 var ret = 0;
                 for (var i = 1; i < mat.shape[0]; ++i) {
                     ret = mat.get(i, index[1]) > mat.get(ret, index[1]) ? i : ret;
@@ -166,7 +166,7 @@ var Matrix = (function () {
             });
         }
         else if (axis === 1) {
-            return Matrix.create([mat.shape[0], 1], function (index) {
+            return new Matrix([mat.shape[0], 1], function (index) {
                 var ret = 0;
                 for (var j = 1; j < mat.shape[1]; ++j) {
                     ret = mat.get(index[0], j) > mat.get(index[0], ret) ? j : ret;
@@ -176,28 +176,21 @@ var Matrix = (function () {
         }
         throw new Error("Axis should be either 0 or 1 but get " + axis);
     };
-    Matrix.fillArray2D = function (shape, val) {
-        if (val === void 0) { val = 0; }
-        return Matrix.createArray2D(shape, function () { return val; });
-    };
-    Matrix.createArray2D = function (shape, callback) {
-        var ret = new Array(shape[0]);
-        for (var i = 0; i < shape[0]; ++i) {
-            ret[i] = new Array(shape[1]);
-            for (var j = 0; j < shape[1]; ++j) {
-                ret[i][j] = callback ? callback([i, j]) : 0;
+    Matrix.prototype.toArray2D = function () {
+        var ret = new Array(this.shape[0]);
+        for (var i = 0; i < this.shape[0]; ++i) {
+            ret[i] = new Array(this.shape[1]);
+            for (var j = 0; j < this.shape[1]; ++j) {
+                ret[i][j] = this.get(i, j);
             }
         }
         return ret;
     };
     Matrix.prototype.map = function (callback) {
-        var arr = Matrix.createArray2D(this.shape);
-        for (var i = 0; i < this.shape[0]; ++i) {
-            for (var j = 0; j < this.shape[1]; ++j) {
-                arr[i][j] = callback(this.get(i, j), [i, j], this);
-            }
-        }
-        return new Matrix(arr);
+        var _this = this;
+        return new Matrix(this.shape, function (index) {
+            return callback(_this.get(index[0], index[1]), index, _this);
+        });
     };
     Matrix.prototype.clip = function (min, max) {
         return this.map(function (val) {
@@ -206,26 +199,57 @@ var Matrix = (function () {
     };
     Matrix.prototype.add = function (other) {
         if (other instanceof Matrix) {
-            return this.map(function (val, index, matrix) { return val + other.get(index); });
+            return this.map(function (val, index, matrix) { return val + other.get(index[0], index[1]); });
         }
         else {
             return this.map(function (val) { return val + other; });
         }
     };
+    Matrix.prototype.foreach = function (callback) {
+        for (var i = 0; i < this.shape[0]; ++i) {
+            for (var j = 0; j < this.shape[1]; ++j) {
+                callback(this.get(i, j), [i, j], this);
+            }
+        }
+    };
+    Matrix.prototype.addAssign = function (other) {
+        if (other instanceof Matrix) {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val + other.get(index[0], index[1])); });
+        }
+        else {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val + other); });
+        }
+    };
     Matrix.prototype.subtract = function (other) {
         if (other instanceof Matrix) {
-            return this.map(function (val, index, matrix) { return val - other.get(index); });
+            return this.map(function (val, index, matrix) { return val - other.get(index[0], index[1]); });
         }
         else {
             return this.map(function (val) { return val - other; });
         }
     };
+    Matrix.prototype.subtractAssign = function (other) {
+        if (other instanceof Matrix) {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val - other.get(index[0], index[1])); });
+        }
+        else {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val - other); });
+        }
+    };
     Matrix.prototype.multiply = function (other) {
         if (other instanceof Matrix) {
-            return this.map(function (val, index, matrix) { return val * other.get(index); });
+            return this.map(function (val, index, matrix) { return val * other.get(index[0], index[1]); });
         }
         else {
             return this.map(function (val) { return val * other; });
+        }
+    };
+    Matrix.prototype.multiplyAssign = function (other) {
+        if (other instanceof Matrix) {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val * other.get(index[0], index[1])); });
+        }
+        else {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val * other); });
         }
     };
     Matrix.prototype.matmul = function (other) {
@@ -246,8 +270,7 @@ var Matrix = (function () {
     };
     Matrix.prototype.transpose = function () {
         var _this = this;
-        var ret = Matrix.zeros([this.shape[1], this.shape[0]]);
-        return ret.map(function (val, index) {
+        return new Matrix([this.shape[1], this.shape[0]], function (index) {
             return _this.get(index[1], index[0]);
         });
     };
@@ -256,24 +279,11 @@ var Matrix = (function () {
             return -val;
         });
     };
-    Matrix.prototype.get = function (i, j) {
-        var offset;
-        if (typeof i === 'number' && typeof j === 'number') {
-            offset = i * this.shape[1] + j;
-        }
-        else {
-            offset = i[0] * this.shape[1] + i[1];
-        }
-        if (offset >= this.content.length) {
-            throw new Error("Index " + [i, j] + " out range");
-        }
-        return this.content[offset];
-    };
     Matrix.prototype.row = function (n) {
         var _this = this;
         if (n < 0)
             n += this.shape[0];
-        return Matrix.create([1, this.shape[1]], function (index) {
+        return new Matrix([1, this.shape[1]], function (index) {
             return _this.get(n, index[1]);
         });
     };
@@ -281,7 +291,7 @@ var Matrix = (function () {
         var _this = this;
         if (n < 0)
             n += this.shape[1];
-        return Matrix.create([this.shape[0], 1], function (index) {
+        return new Matrix([this.shape[0], 1], function (index) {
             return _this.get(index[0], n);
         });
     };
@@ -312,8 +322,19 @@ var Matrix = (function () {
             this.set(i, n, mat.get(i, 0));
         }
     };
+    Matrix.prototype.get = function (i, j) {
+        var offset = i * this.shape[1] + j;
+        if (offset >= this.content.length) {
+            throw new Error("Index " + [i, j] + " out range");
+        }
+        return this.content[offset];
+    };
     Matrix.prototype.set = function (i, j, val) {
-        this.content[i * this.shape[1] + j] = val;
+        var offset = i * this.shape[1] + j;
+        if (offset >= this.content.length) {
+            throw new Error("Index " + [i, j] + " out range");
+        }
+        this.content[offset] = val;
     };
     Matrix.prototype.toString = function () {
         var ret = '[\n';
@@ -382,8 +403,8 @@ var MTracer = (function (_super) {
         _this.orientation = [];
         _this.target = [];
         _this.output = [];
-        _this.eta = 0.05;
-        _this.framePerSecond = 50;
+        _this.eta = 0.02;
+        _this.framePerSecond = 60;
         return _this;
     }
     MTracer.prototype.run = function (callback) {
@@ -399,7 +420,7 @@ var MTracer = (function (_super) {
             this.output = _super.prototype.update.call(this, input, this.target, this.eta);
         }
         if (callback) {
-            callback(this.acceleration, this.target, this.output, this.loss);
+            callback(this.acceleration, this.orientation, this.target, this.output, this.loss);
         }
         setTimeout(function () { _this.frame(callback); }, 1000 / this.framePerSecond);
     };
@@ -444,12 +465,15 @@ var RNN = (function () {
         var loss = 0;
         states.setRow(0, prev_state);
         for (var t = 0; t < inputs.shape[0]; ++t) {
-            states.setRow(t + 1, matrix_1.Matrix.tanh(inputs.row(t).matmul(this.Wih)
+            var currentState = matrix_1.Matrix.tanh(inputs.row(t)
+                .matmul(this.Wih)
                 .add(states.row(t).matmul(this.Whh))
-                .add(this.bh)));
-            outputs.setRow(t, states.row(t + 1).matmul(this.Who).add(this.bo));
+                .add(this.bh));
+            states.setRow(t + 1, currentState);
+            var currentOutput = currentState.matmul(this.Who).add(this.bo);
+            outputs.setRow(t, currentOutput);
             if (targets) {
-                loss += matrix_1.Matrix.mean(matrix_1.Matrix.pow(outputs.row(t).subtract(targets.row(t)), 2));
+                loss += matrix_1.Matrix.mean(matrix_1.Matrix.pow(currentOutput.subtract(targets.row(t)), 2));
             }
         }
         return [states, outputs, loss];
@@ -472,22 +496,24 @@ var RNN = (function () {
         var dWho = matrix_1.Matrix.zeros([this.hidden_dim, this.output_dim]);
         var dbo = matrix_1.Matrix.zeros([1, this.output_dim]);
         var dhnext = matrix_1.Matrix.zeros([1, this.hidden_dim]);
+        var douts = outputs.subtract(targets);
         for (var t = inputs.shape[0] - 1; t >= Math.max(inputs.shape[0] - this.series_len, 0); --t) {
-            var dout = outputs.row(t).subtract(targets.row(t)); // 1 * output_dim
-            dWho = dWho.add(states.row(t + 1).transpose().matmul(dout)); // hidden_dim * output_dim
-            dbo = dbo.add(dout); // 1 * output_dim
+            var dout = douts.row(t);
+            var currentState = states.row(t + 1);
+            dWho.addAssign(currentState.transpose().matmul(dout)); // hidden_dim * output_dim
+            dbo.addAssign(dout); // 1 * output_dim
             var dh = dout.matmul(this.Who.transpose()).add(dhnext); // 1 * hidden_dim
-            var dhraw = matrix_1.Matrix.tanh_d(states.row(t + 1)).multiply(dh); // 1 * hidden_dim 
-            dbh = dbh.add(dhraw); // 1 * hidden_dim
-            dWhh = dWhh.add(states.row(t).transpose().matmul(dhraw));
-            dWih = dWih.add(inputs.row(t).transpose().matmul(dhraw));
+            var dhraw = matrix_1.Matrix.tanh_d(currentState).multiply(dh); // 1 * hidden_dim 
+            dbh.addAssign(dhraw); // 1 * hidden_dim
+            dWhh.addAssign(states.row(t).transpose().matmul(dhraw));
+            dWih.addAssign(inputs.row(t).transpose().matmul(dhraw));
             dhnext = dhraw.matmul(this.Whh.transpose());
         }
-        this.Wih = this.Wih.subtract(dWih.clip(-2, 2).multiply(eta));
-        this.Whh = this.Whh.subtract(dWhh.clip(-2, 2).multiply(eta));
-        this.bh = this.bh.subtract(dbh.clip(-2, 2).multiply(eta));
-        this.Who = this.Who.subtract(dWho.clip(-2, 2).multiply(eta));
-        this.bo = this.bo.subtract(dbo.clip(-2, 2).multiply(eta));
+        this.Wih.subtractAssign(dWih.clip(-2, 2).multiply(eta));
+        this.Whh.subtractAssign(dWhh.clip(-2, 2).multiply(eta));
+        this.bh.subtractAssign(dbh.clip(-2, 2).multiply(eta));
+        this.Who.subtractAssign(dWho.clip(-2, 2).multiply(eta));
+        this.bo.subtractAssign(dbo.clip(-2, 2).multiply(eta));
         return loss;
     };
     RNN.prototype.predict = function (inputs) {
@@ -568,61 +594,92 @@ cvs.addEventListener("touchend", function (e) {
     e.preventDefault();
     mt.target = [];
 });
-// let accelerationSpan = document.getElementById('acceleration');
-// let targetSpan = document.getElementById('target');
-// let outputSpan = document.getElementById('output');
-// let lossSpan = document.getElementById('loss');
+var accelerationSpan = $('#acceleration-span');
+var targetSpan = $('#target-span');
+var outputSpan = $('#output-span');
+var lossSpan = $('#loss-span');
+var orientationSpan = $('#orientation-span');
 var mt = new mtracer_1.MTracer(15, 30);
-mt.run(function (acceleration, target, output, loss) {
+mt.run(function (acceleration, orientation, target, output, loss) {
     clear();
-    // if (acceleration.length > 0)
-    //     accelerationSpan.innerHTML = acceleration.map((val) => { return val.toFixed(2) }).join(', ');
-    // if (target.length > 0)
-    //     targetSpan.innerHTML = target.map((val) => { return val.toFixed(2) }).join(', ');
-    // if (output.length > 0)
-    //     outputSpan.innerHTML = output.map((val) => { return val.toFixed(2) }).join(', ');
-    // if (loss)
-    //     lossSpan.innerHTML = loss.toFixed(2);
-    if (target.length == 2) {
+    accelerationSpan.text(acceleration.length > 0 ? acceleration.map(function (val) { return val.toFixed(2); }).join(', ') : '-');
+    orientationSpan.text(orientation.length > 0 ? orientation.map(function (val) { return val.toFixed(2); }).join(', ') : '0');
+    // targetSpan.text(target.length > 0 ? target.map(val => { return val.toFixed(2) }).join(', ') : '-');
+    // outputSpan.text(output.length > 0 ? output.map(val => { return val.toFixed(2) }).join(', ') : '-');
+    lossSpan.text(loss ? loss.toFixed(2) : '-');
+    if (target.length === 2) {
         ctx.fillStyle = COLOR_USER;
         drawPoint(target[0] * WIDTH, target[1] * HEIGHT);
     }
-    if (output.length == 2) {
+    if (output.length === 2) {
         ctx.fillStyle = COLOR_TRACER;
         drawPoint(output[0] * WIDTH, output[1] * HEIGHT);
-    }
-});
-// document.getElementById('reset-btn').onclick = () => { mt.reset(); };
-var monitor = new Vue({
-    el: '#monitor',
-    data: {
-        mt: mt,
     }
 });
 $('#reset-btn').click(function () { mt.reset(); });
 $('#setting-btn').click(function () {
     $('#settings').modal('show');
+    $('#fps-span').text(mt.framePerSecond);
+    $('#eta-span').text(mt.eta);
+    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
+    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
+    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
+    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
 });
-var setting = new Vue({
-    el: '#settings',
-    data: {
-        mt: mt,
-        updateFramePerSecond: function (event, sign) {
-            mt.framePerSecond += sign > 0 ? 1 : -1;
-        },
-        updateLearningRate: function (event, sign) {
-            mt.eta += sign > 0 ? 0.01 : -0.01;
-        },
-        toggleAcceleration: function (event, on) {
-            mt.accelerationEnabled = on;
-        },
-        toggleOrientation: function (event, on) {
-            mt.orientationEnabled = on;
-        },
-        hideModal: function () {
-            $('#settings').modal('hide');
-        }
+var monitor = $("#monitor");
+var hideMonitorBtn = $('#hide-monitor-btn');
+hideMonitorBtn.click(function () {
+    if (monitor.is(":visible")) {
+        monitor.hide(200);
+        hideMonitorBtn.text("Show Monitor");
     }
+    else {
+        monitor.show(200);
+        hideMonitorBtn.text("Hide Monitor");
+    }
+});
+$('#go-back-btn').click(function () { $('#settings').modal('hide'); });
+$('#add-fps-btn').click(function () {
+    mt.framePerSecond += 1;
+    if (mt.framePerSecond > 79) {
+        $('#add-fps-btn').attr('disabled', 'disabled');
+    }
+    $('#fps-span').text(mt.framePerSecond);
+    $('#subtract-fps-btn').removeAttr('disabled');
+});
+$('#subtract-fps-btn').click(function () {
+    mt.framePerSecond -= 1;
+    if (mt.framePerSecond < 31) {
+        $('#subtract-fps-btn').attr('disabled', 'disabled');
+    }
+    $('#add-fps-btn').removeAttr('disabled');
+    $('#fps-span').text(mt.framePerSecond);
+});
+$('#add-eta-btn').click(function () {
+    mt.eta += 0.01;
+    if (mt.eta > 0.09) {
+        $('#add-eta-btn').attr('disabled', 'disabled');
+    }
+    $('#eta-span').text(mt.eta.toFixed(2));
+    $('#subtract-eta-btn').removeAttr('disabled');
+});
+$('#subtract-eta-btn').click(function () {
+    mt.eta -= 0.01;
+    if (mt.eta < 0.02) {
+        $('#subtract-eta-btn').attr('disabled', 'disabled');
+    }
+    $('#add-eta-btn').removeAttr('disabled');
+    $('#eta-span').text(mt.eta.toFixed(2));
+});
+$('#toggle-acc-btn').click(function () {
+    mt.accelerationEnabled = !mt.accelerationEnabled;
+    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
+    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
+});
+$('#toggle-ori-btn').click(function () {
+    mt.orientationEnabled = !mt.orientationEnabled;
+    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
+    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
 });
 
 
@@ -638,8 +695,10 @@ var rnn_1 = __webpack_require__(2);
 var Tracer = (function () {
     function Tracer(series_len, input_dim, hidden_dim, output_dim) {
         this.rnn = new rnn_1.RNN(series_len, input_dim, hidden_dim, output_dim);
-        this.inputs_series = matrix_1.Matrix.fillArray2D([series_len, input_dim], 0);
-        this.target_series = matrix_1.Matrix.fillArray2D([series_len, output_dim], 0);
+        this.inputs_matrix = new matrix_1.Matrix([series_len, input_dim]);
+        this.target_matrix = new matrix_1.Matrix([series_len, output_dim]);
+        this.inputs_series = this.inputs_matrix.toArray2D();
+        this.target_series = this.target_matrix.toArray2D();
         this.input_dim = input_dim;
         this.output_dim = output_dim;
     }
@@ -648,15 +707,17 @@ var Tracer = (function () {
         if (target === void 0) { target = []; }
         if (eta === void 0) { eta = 0.3; }
         if (input.length === this.input_dim) {
-            this.inputs_series.splice(0, 1);
+            this.inputs_series.shift();
             this.inputs_series.push(input);
+            this.inputs_matrix = matrix_1.Matrix.createFromArray2D(this.inputs_series);
             if (input && target.length === this.output_dim) {
-                this.target_series.splice(0, 1);
+                this.target_series.shift();
                 this.target_series.push(target);
-                this.loss = this.rnn.train(new matrix_1.Matrix(this.inputs_series), new matrix_1.Matrix(this.target_series), eta);
+                this.target_matrix = matrix_1.Matrix.createFromArray2D(this.target_series);
+                this.loss = this.rnn.train(this.inputs_matrix, this.target_matrix, eta);
             }
         }
-        return this.rnn.predict(new matrix_1.Matrix(this.inputs_series)).row(-1).content;
+        return this.rnn.predict(this.inputs_matrix).row(-1).content;
     };
     Tracer.prototype.reset = function () {
         this.rnn.reset();

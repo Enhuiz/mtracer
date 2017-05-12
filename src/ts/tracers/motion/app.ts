@@ -73,68 +73,110 @@ cvs.addEventListener("touchend", function (e) {
     mt.target = [];
 });
 
-// let accelerationSpan = document.getElementById('acceleration');
-// let targetSpan = document.getElementById('target');
-// let outputSpan = document.getElementById('output');
-// let lossSpan = document.getElementById('loss');
+let accelerationSpan = $('#acceleration-span');
+let targetSpan = $('#target-span');
+let outputSpan = $('#output-span');
+let lossSpan = $('#loss-span');
+let orientationSpan = $('#orientation-span');
 
 let mt = new MTracer(15, 30);
 
-mt.run((acceleration, target, output, loss) => {
+mt.run((acceleration, orientation, target, output, loss) => {
     clear();
 
-    // if (acceleration.length > 0)
-    //     accelerationSpan.innerHTML = acceleration.map((val) => { return val.toFixed(2) }).join(', ');
-    // if (target.length > 0)
-    //     targetSpan.innerHTML = target.map((val) => { return val.toFixed(2) }).join(', ');
-    // if (output.length > 0)
-    //     outputSpan.innerHTML = output.map((val) => { return val.toFixed(2) }).join(', ');
-    // if (loss)
-    //     lossSpan.innerHTML = loss.toFixed(2);
+    accelerationSpan.text(acceleration.length > 0 ? acceleration.map(val => { return val.toFixed(2) }).join(', ') : '-');
 
-    if (target.length == 2) {
+    orientationSpan.text(orientation.length > 0 ? orientation.map(val => { return val.toFixed(2) }).join(', ') : '0');
+
+    // targetSpan.text(target.length > 0 ? target.map(val => { return val.toFixed(2) }).join(', ') : '-');
+
+    // outputSpan.text(output.length > 0 ? output.map(val => { return val.toFixed(2) }).join(', ') : '-');
+
+    lossSpan.text(loss ? loss.toFixed(2) : '-');
+
+    if (target.length === 2) {
         ctx.fillStyle = COLOR_USER;
         drawPoint(target[0] * WIDTH, target[1] * HEIGHT);
     }
 
-    if (output.length == 2) {
+    if (output.length === 2) {
         ctx.fillStyle = COLOR_TRACER;
         drawPoint(output[0] * WIDTH, output[1] * HEIGHT);
-    }
-});
-
-
-// document.getElementById('reset-btn').onclick = () => { mt.reset(); };
-let monitor = new Vue({
-    el: '#monitor',
-    data: {
-        mt: mt,
     }
 });
 
 $('#reset-btn').click(() => { mt.reset(); });
 $('#setting-btn').click(() => {
     $('#settings').modal('show');
+    $('#fps-span').text(mt.framePerSecond);
+    $('#eta-span').text(mt.eta);
+    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
+    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
+    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
+    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
 });
 
-let setting = new Vue({
-    el: '#settings',
-    data: {
-        mt: mt,
-        updateFramePerSecond(event, sign) {
-            mt.framePerSecond += sign > 0 ? 1 : -1;
-        },
-        updateLearningRate(event, sign) {
-            mt.eta += sign > 0 ? 0.01 : -0.01;
-        },
-        toggleAcceleration(event, on) {
-            mt.accelerationEnabled = on;
-        },
-        toggleOrientation(event, on) {
-            mt.orientationEnabled = on;
-        },
-        hideModal() {
-            $('#settings').modal('hide');
-        }
+let monitor = $("#monitor");
+let hideMonitorBtn = $('#hide-monitor-btn');
+hideMonitorBtn.click(() => {
+    if (monitor.is(":visible")) {
+        monitor.hide(200);
+        hideMonitorBtn.text("Show Monitor");
+    } else {
+        monitor.show(200);
+        hideMonitorBtn.text("Hide Monitor");
     }
+});
+
+$('#go-back-btn').click(() => { $('#settings').modal('hide'); })
+
+$('#add-fps-btn').click(() => {
+    mt.framePerSecond += 1;
+    if (mt.framePerSecond > 79) {
+        $('#add-fps-btn').attr('disabled', 'disabled');
+    }
+    $('#fps-span').text(mt.framePerSecond);
+    $('#subtract-fps-btn').removeAttr('disabled');
+});
+
+$('#subtract-fps-btn').click(() => {
+    mt.framePerSecond -= 1;
+    if (mt.framePerSecond < 31) {
+        $('#subtract-fps-btn').attr('disabled', 'disabled');
+    }
+    $('#add-fps-btn').removeAttr('disabled');
+    $('#fps-span').text(mt.framePerSecond);
+});
+
+$('#add-eta-btn').click(() => {
+    mt.eta += 0.01;
+    if (mt.eta > 0.09) {
+        $('#add-eta-btn').attr('disabled', 'disabled');
+    }
+    $('#eta-span').text(mt.eta.toFixed(2));
+    $('#subtract-eta-btn').removeAttr('disabled');
+});
+
+$('#subtract-eta-btn').click(() => {
+    mt.eta -= 0.01;
+    if (mt.eta < 0.02) {
+        $('#subtract-eta-btn').attr('disabled', 'disabled');
+    }
+    $('#add-eta-btn').removeAttr('disabled');
+    $('#eta-span').text(mt.eta.toFixed(2));
+});
+
+
+$('#toggle-acc-btn').click(() => {
+    mt.accelerationEnabled = !mt.accelerationEnabled;
+    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
+    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
+});
+
+$('#toggle-ori-btn').click(() => {
+    mt.orientationEnabled = !mt.orientationEnabled;
+    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
+    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
+
+
 });

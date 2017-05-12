@@ -11,7 +11,7 @@ var exec_timer_1 = require("../utils/exec_timer");
     var output_dim = 10;
     var series_len = 1000;
     function series_start_at(series_len, input_dim, n) {
-        var ret = matrix_1.Matrix.fillArray2D([series_len, input_dim]);
+        var ret = new matrix_1.Matrix([series_len, input_dim]).toArray2D();
         for (var i = 0; i < series_len; ++i) {
             ret[i][(i + n) % 10] = 1;
         }

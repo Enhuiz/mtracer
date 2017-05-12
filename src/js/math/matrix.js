@@ -103,16 +103,12 @@ var Matrix = (function () {
         }
         throw new Error("Axis should be either 0 or 1 but get " + axis);
     };
-    Matrix.fillArray2D = function (shape, val) {
-        if (val === void 0) { val = 0; }
-        return Matrix.createArray2D(shape, function () { return val; });
-    };
-    Matrix.createArray2D = function (shape, callback) {
-        var ret = new Array(shape[0]);
-        for (var i = 0; i < shape[0]; ++i) {
-            ret[i] = new Array(shape[1]);
-            for (var j = 0; j < shape[1]; ++j) {
-                ret[i][j] = callback ? callback([i, j]) : 0;
+    Matrix.prototype.toArray2D = function () {
+        var ret = new Array(this.shape[0]);
+        for (var i = 0; i < this.shape[0]; ++i) {
+            ret[i] = new Array(this.shape[1]);
+            for (var j = 0; j < this.shape[1]; ++j) {
+                ret[i][j] = this.get(i, j);
             }
         }
         return ret;
@@ -120,7 +116,7 @@ var Matrix = (function () {
     Matrix.prototype.map = function (callback) {
         var _this = this;
         return new Matrix(this.shape, function (index) {
-            return callback(_this.get(index), index, _this);
+            return callback(_this.get(index[0], index[1]), index, _this);
         });
     };
     Matrix.prototype.clip = function (min, max) {
@@ -130,26 +126,57 @@ var Matrix = (function () {
     };
     Matrix.prototype.add = function (other) {
         if (other instanceof Matrix) {
-            return this.map(function (val, index, matrix) { return val + other.get(index); });
+            return this.map(function (val, index, matrix) { return val + other.get(index[0], index[1]); });
         }
         else {
             return this.map(function (val) { return val + other; });
         }
     };
+    Matrix.prototype.foreach = function (callback) {
+        for (var i = 0; i < this.shape[0]; ++i) {
+            for (var j = 0; j < this.shape[1]; ++j) {
+                callback(this.get(i, j), [i, j], this);
+            }
+        }
+    };
+    Matrix.prototype.addAssign = function (other) {
+        if (other instanceof Matrix) {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val + other.get(index[0], index[1])); });
+        }
+        else {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val + other); });
+        }
+    };
     Matrix.prototype.subtract = function (other) {
         if (other instanceof Matrix) {
-            return this.map(function (val, index, matrix) { return val - other.get(index); });
+            return this.map(function (val, index, matrix) { return val - other.get(index[0], index[1]); });
         }
         else {
             return this.map(function (val) { return val - other; });
         }
     };
+    Matrix.prototype.subtractAssign = function (other) {
+        if (other instanceof Matrix) {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val - other.get(index[0], index[1])); });
+        }
+        else {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val - other); });
+        }
+    };
     Matrix.prototype.multiply = function (other) {
         if (other instanceof Matrix) {
-            return this.map(function (val, index, matrix) { return val * other.get(index); });
+            return this.map(function (val, index, matrix) { return val * other.get(index[0], index[1]); });
         }
         else {
             return this.map(function (val) { return val * other; });
+        }
+    };
+    Matrix.prototype.multiplyAssign = function (other) {
+        if (other instanceof Matrix) {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val * other.get(index[0], index[1])); });
+        }
+        else {
+            return this.foreach(function (val, index, matrix) { matrix.set(index[0], index[1], val * other); });
         }
     };
     Matrix.prototype.matmul = function (other) {
@@ -170,8 +197,7 @@ var Matrix = (function () {
     };
     Matrix.prototype.transpose = function () {
         var _this = this;
-        var ret = Matrix.zeros([this.shape[1], this.shape[0]]);
-        return ret.map(function (val, index) {
+        return new Matrix([this.shape[1], this.shape[0]], function (index) {
             return _this.get(index[1], index[0]);
         });
     };
@@ -179,19 +205,6 @@ var Matrix = (function () {
         return this.map(function (val) {
             return -val;
         });
-    };
-    Matrix.prototype.get = function (i, j) {
-        var offset;
-        if (typeof i === 'number' && typeof j === 'number') {
-            offset = i * this.shape[1] + j;
-        }
-        else {
-            offset = i[0] * this.shape[1] + i[1];
-        }
-        if (offset >= this.content.length) {
-            throw new Error("Index " + [i, j] + " out range");
-        }
-        return this.content[offset];
     };
     Matrix.prototype.row = function (n) {
         var _this = this;
@@ -236,8 +249,19 @@ var Matrix = (function () {
             this.set(i, n, mat.get(i, 0));
         }
     };
+    Matrix.prototype.get = function (i, j) {
+        var offset = i * this.shape[1] + j;
+        if (offset >= this.content.length) {
+            throw new Error("Index " + [i, j] + " out range");
+        }
+        return this.content[offset];
+    };
     Matrix.prototype.set = function (i, j, val) {
-        this.content[i * this.shape[1] + j] = val;
+        var offset = i * this.shape[1] + j;
+        if (offset >= this.content.length) {
+            throw new Error("Index " + [i, j] + " out range");
+        }
+        this.content[offset] = val;
     };
     Matrix.prototype.toString = function () {
         var ret = '[\n';

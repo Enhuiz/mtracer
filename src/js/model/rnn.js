@@ -23,12 +23,15 @@ var RNN = (function () {
         var loss = 0;
         states.setRow(0, prev_state);
         for (var t = 0; t < inputs.shape[0]; ++t) {
-            states.setRow(t + 1, matrix_1.Matrix.tanh(inputs.row(t).matmul(this.Wih)
+            var currentState = matrix_1.Matrix.tanh(inputs.row(t)
+                .matmul(this.Wih)
                 .add(states.row(t).matmul(this.Whh))
-                .add(this.bh)));
-            outputs.setRow(t, states.row(t + 1).matmul(this.Who).add(this.bo));
+                .add(this.bh));
+            states.setRow(t + 1, currentState);
+            var currentOutput = currentState.matmul(this.Who).add(this.bo);
+            outputs.setRow(t, currentOutput);
             if (targets) {
-                loss += matrix_1.Matrix.mean(matrix_1.Matrix.pow(outputs.row(t).subtract(targets.row(t)), 2));
+                loss += matrix_1.Matrix.mean(matrix_1.Matrix.pow(currentOutput.subtract(targets.row(t)), 2));
             }
         }
         return [states, outputs, loss];
@@ -50,22 +53,24 @@ var RNN = (function () {
         var dWho = matrix_1.Matrix.zeros([this.hidden_dim, this.output_dim]);
         var dbo = matrix_1.Matrix.zeros([1, this.output_dim]);
         var dhnext = matrix_1.Matrix.zeros([1, this.hidden_dim]);
+        var douts = outputs.subtract(targets);
         for (var t = inputs.shape[0] - 1; t >= Math.max(inputs.shape[0] - this.series_len, 0); --t) {
-            var dout = outputs.row(t).subtract(targets.row(t));
-            dWho = dWho.add(states.row(t + 1).transpose().matmul(dout));
-            dbo = dbo.add(dout);
+            var dout = douts.row(t);
+            var currentState = states.row(t + 1);
+            dWho.addAssign(currentState.transpose().matmul(dout));
+            dbo.addAssign(dout);
             var dh = dout.matmul(this.Who.transpose()).add(dhnext);
-            var dhraw = matrix_1.Matrix.tanh_d(states.row(t + 1)).multiply(dh);
-            dbh = dbh.add(dhraw);
-            dWhh = dWhh.add(states.row(t).transpose().matmul(dhraw));
-            dWih = dWih.add(inputs.row(t).transpose().matmul(dhraw));
+            var dhraw = matrix_1.Matrix.tanh_d(currentState).multiply(dh);
+            dbh.addAssign(dhraw);
+            dWhh.addAssign(states.row(t).transpose().matmul(dhraw));
+            dWih.addAssign(inputs.row(t).transpose().matmul(dhraw));
             dhnext = dhraw.matmul(this.Whh.transpose());
         }
-        this.Wih = this.Wih.subtract(dWih.clip(-2, 2).multiply(eta));
-        this.Whh = this.Whh.subtract(dWhh.clip(-2, 2).multiply(eta));
-        this.bh = this.bh.subtract(dbh.clip(-2, 2).multiply(eta));
-        this.Who = this.Who.subtract(dWho.clip(-2, 2).multiply(eta));
-        this.bo = this.bo.subtract(dbo.clip(-2, 2).multiply(eta));
+        this.Wih.subtractAssign(dWih.clip(-2, 2).multiply(eta));
+        this.Whh.subtractAssign(dWhh.clip(-2, 2).multiply(eta));
+        this.bh.subtractAssign(dbh.clip(-2, 2).multiply(eta));
+        this.Who.subtractAssign(dWho.clip(-2, 2).multiply(eta));
+        this.bo.subtractAssign(dbo.clip(-2, 2).multiply(eta));
         return loss;
     };
     RNN.prototype.predict = function (inputs) {
