@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.css" rel="stylesheet">
+    <title>Motion Tracer</title>
+
+    <style>
+        /*body {
+            background-color: #4fb3bf;
+        }*/
+    </style>
+</head>
+
+<body>
+    <div class="ui menu">
+        <a class="item" href="../index.html"> <i class="angle left icon"></i>
+        </a>
+        <div class="item" href="../index.html">Motion Tracer</div>
+        <a class="github popup icon item" data-content="View project on GitHub" href="https://github.com/Enhuiz/tracer">
+            <i class="alternate github icon"></i>
+        </a>
+    </div>
+
+    <center><canvas id="cvs" class="center"></canvas></center>
+
+    <div id="monitor" class="ui text container">
+        <div class="ui mini  statistics">
+            <div class="statistic">
+                <div class="label">
+                    Acceleration
+                </div>
+                <div class="value">
+                    {{mt.accelerationEnabled ? mt.acceleration.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Orientation
+                </div>
+                <div class="value">
+                    {{mt.orientationEnabled ? mt.acceleration.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Loss
+                </div>
+                <div class="value">
+                    {{mt.loss ? mt.loss.toFixed(2) : "-"}}
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    You
+                </div>
+                <div class="value">
+                    {{mt.target.length > 0 ? mt.target.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Tracer
+                </div>
+                <div class="value">
+                    {{mt.output.length > 0 ? mt.output.map(function(val){return val.toFixed(2);}).join(', ') : "-"}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br>
+    <center>
+        <button id="setting-btn" class="ui large black basic button">Setting Panel</button>
+        <button id="reset-btn" class="ui large black basic button">Reset Tracer</button>
+    </center>
+
+    <div id="settings" class="ui modal">
+        <br>
+        <br>
+        <div class="ui container">
+            <center>
+                <h1 class="ui dividing header ">Settings</h1>
+                <table class="ui small  table">
+                    <tbody>
+                        <tr>
+                            <td class="two wide">
+                                <span class="ui black label"> 
+                                Learning Rate
+                                </span>
+                            </td>
+                            <td class="two wide">
+                                <div class="ui basic label"> {{mt.eta.toFixed(2)}} </div>
+                            </td>
+                            <td class="two wide">
+                                <div class="ui mini buttons">
+                                    <button class="ui mini button" @click="updateLearningRate($event, -1)" :disabled="mt.eta <= 0.01"><i class="small minus icon"></i></button>
+                                    <div class="or"></div>
+                                    <button class="ui mini button" @click="updateLearningRate($event, 1)" :disabled="mt.eta >= 0.09"><i class=" small plus icon "></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="ui black label "> 
+                                Frame Per Second
+                                </span>
+                            </td>
+                            <td>
+                                <div class="ui basic label "> {{mt.framePerSecond}} </div>
+                            </td>
+                            <td>
+                                <div class="ui mini buttons ">
+                                    <button class="ui mini button " @click="updateFramePerSecond($event, -1) " :disabled="mt.framePerSecond <= 20"><i class="small minus icon "></i></button>
+                                    <div class="or "></div>
+                                    <button class="ui mini button " @click="updateFramePerSecond($event, 1) " :disabled="mt.framePerSecond >= 60"><i class="small plus icon"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="ui black label"> 
+                                Acceleration
+                                </span>
+                            </td>
+                            <td>
+                                <div class="ui basic label"> {{mt.accelerationEnabled ? 'On' : 'Off'}} </div>
+                            </td>
+                            <td>
+                                <button class="ui mini basic button" @click="toggleAcceleration($event, !mt.accelerationEnabled)">
+                                    <i v-if="mt.accelerationEnabled" class="toggle on icon"></i>
+                                    <i v-if="!mt.accelerationEnabled" class="toggle off icon"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="ui black label"> 
+                                Orientation
+                                </span>
+                            </td>
+                            <td>
+                                <div class="ui basic label"> {{mt.orientationEnabled ? 'On' : 'Off'}} </div>
+                            </td>
+                            <td>
+                                <button class="ui mini basic button" @click="toggleOrientation($event, !mt.orientationEnabled)">
+                                    <i v-if=" mt.orientationEnabled " class="toggle on icon "></i>
+                                    <i v-if="!mt.orientationEnabled" class="toggle off icon"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="ui button black" @click="hideModal">Go Back</button>
+                <br>
+                <br>
+            </center>
+        </div>
+    </div>
+
+</body>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js"></script>
+<script src="https://cdn.bootcss.com/vue/2.3.2/vue.min.js"></script>
+<script src="motion-tracer.js"></script>
+
+</html>

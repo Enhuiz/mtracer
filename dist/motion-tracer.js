@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 3);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -356,124 +356,66 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var tracer_1 = __webpack_require__(4);
-var GaitTracer = (function (_super) {
-    __extends(GaitTracer, _super);
-    function GaitTracer(series_len, hidden_dim, output_dim) {
-        var _this = _super.call(this, series_len, 3, hidden_dim, output_dim) || this;
+var MTracer = (function (_super) {
+    __extends(MTracer, _super);
+    function MTracer(series_len, hidden_dim) {
+        var _this = _super.call(this, series_len, 6, hidden_dim, 2) || this;
+        _this.accelerationEnabled = true;
+        _this.orientationEnabled = true;
         window.addEventListener('devicemotion', function (event) {
-            if (event.acceleration) {
+            if (event.acceleration && _this.accelerationEnabled) {
                 _this.acceleration = [event.acceleration.x || 0, event.acceleration.y || 0, event.acceleration.z || 0];
             }
+            else {
+                _this.acceleration = [0, 0, 0];
+            }
         });
-        _this.eta = 0.3;
+        window.addEventListener('deviceorientation', function (event) {
+            if (_this.orientationEnabled) {
+                _this.orientation = [event.alpha || 0, event.beta || 0, event.gamma || 0];
+            }
+            else {
+                _this.orientation = [0, 0, 0];
+            }
+        });
+        _this.acceleration = [];
+        _this.orientation = [];
         _this.target = [];
         _this.output = [];
+        _this.eta = 0.05;
+        _this.framePerSecond = 50;
         return _this;
     }
-    GaitTracer.prototype.run = function (deltaTime, callback) {
+    MTracer.prototype.run = function (callback) {
         var _this = this;
-        setInterval(function () {
-            _this.output = _super.prototype.tick.call(_this, _this.acceleration, _this.target, _this.eta);
-            callback(_this.acceleration, _this.target, _this.output, _this.loss);
-        }, deltaTime);
+        setTimeout(function () { _this.frame(callback); }, 1000 / this.framePerSecond);
     };
-    return GaitTracer;
+    MTracer.prototype.frame = function (callback) {
+        var _this = this;
+        var input = []
+            .concat(this.accelerationEnabled ? this.acceleration : [0, 0, 0])
+            .concat(this.orientationEnabled ? this.orientation : [0, 0, 0]);
+        if (input.length === 6 && this.target.length === 2) {
+            this.output = _super.prototype.update.call(this, this.acceleration.concat(this.orientation), this.target, this.eta);
+        }
+        if (callback) {
+            callback(this.acceleration, this.target, this.output, this.loss);
+        }
+        setTimeout(function () { _this.frame(callback); }, 1000 / this.framePerSecond);
+    };
+    MTracer.prototype.reset = function () {
+        _super.prototype.reset.call(this);
+        this.target = [];
+        this.output = [];
+        this.loss = 0;
+    };
+    return MTracer;
 }(tracer_1.Tracer));
-exports.GaitTracer = GaitTracer;
+exports.MTracer = MTracer;
 
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var gait_tracer_1 = __webpack_require__(1);
-(function () {
-    var cvs = document.getElementById('cvs');
-    var ctx = cvs.getContext('2d');
-    var WIDTH = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-    var HEIGHT = WIDTH;
-    var UNIT = WIDTH / 400;
-    var RADIUS = 8 * UNIT;
-    cvs.setAttribute('width', WIDTH.toString());
-    cvs.setAttribute('height', HEIGHT.toString());
-    function drawPoint(x, y) {
-        ctx.beginPath();
-        ctx.arc(x, y, RADIUS, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-    ;
-    function clear() {
-        ctx.fillStyle = '#FFF731';
-        ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    }
-    function getCanvasPos(cvs, e) {
-        var rect = cvs.getBoundingClientRect();
-        return [e.clientX - rect.left * (cvs.width / rect.width),
-            e.clientY - rect.top * (cvs.height / rect.height)];
-    }
-    cvs.addEventListener("mouseup", function (e) {
-        gt.target = [];
-    });
-    cvs.addEventListener("mousedown", function (e) {
-        if (e.buttons > 0) {
-            var _a = getCanvasPos(cvs, e), x = _a[0], y = _a[1];
-            gt.target = [x / WIDTH, y / HEIGHT];
-        }
-    });
-    cvs.addEventListener("mousemove", function (e) {
-        if (e.buttons > 0) {
-            var _a = getCanvasPos(cvs, e), x = _a[0], y = _a[1];
-            gt.target = [x / WIDTH, y / HEIGHT];
-        }
-    });
-    cvs.addEventListener("touchstart", function (e) {
-        e.preventDefault();
-        var _a = getCanvasPos(cvs, e.touches[0]), x = _a[0], y = _a[1];
-        gt.target = [x / WIDTH, y / HEIGHT];
-    });
-    cvs.addEventListener("touchmove", function (e) {
-        e.preventDefault();
-        var _a = getCanvasPos(cvs, e.touches[0]), x = _a[0], y = _a[1];
-        gt.target = [x / WIDTH, y / HEIGHT];
-    });
-    cvs.addEventListener("touchend", function (e) {
-        e.preventDefault();
-        gt.target = [];
-    });
-    var accelerationSpan = document.getElementById('acceleration');
-    var targetSpan = document.getElementById('target');
-    var outputSpan = document.getElementById('output');
-    var lossSpan = document.getElementById('loss');
-    var gt = new gait_tracer_1.GaitTracer(15, 25, 2);
-    gt.eta = 1e-2;
-    gt.run(40, function (acceleration, target, output, loss) {
-        clear();
-        if (acceleration.length > 0)
-            accelerationSpan.innerHTML = acceleration.map(function (val) { return val.toFixed(2); }).join(', ');
-        if (target.length > 0)
-            targetSpan.innerHTML = target.map(function (val) { return val.toFixed(2); }).join(', ');
-        if (output.length > 0)
-            outputSpan.innerHTML = output.map(function (val) { return val.toFixed(2); }).join(', ');
-        if (loss)
-            lossSpan.innerHTML = loss.toFixed(2);
-        if (target.length == 2) {
-            ctx.fillStyle = '#c77800';
-            drawPoint(target[0] * WIDTH, target[1] * HEIGHT);
-        }
-        if (output.length == 2) {
-            ctx.fillStyle = '#00838f';
-            drawPoint(output[0] * WIDTH, output[1] * HEIGHT);
-        }
-    });
-    document.getElementById('reset-btn').onclick = function () { gt.reset(); };
-})();
-
-
-/***/ }),
-/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -563,6 +505,128 @@ exports.RNN = RNN;
 
 
 /***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var mtracer_1 = __webpack_require__(1);
+var cvs = document.getElementById('cvs');
+var ctx = cvs.getContext('2d');
+var horizantal = window.innerWidth > window.innerHeight;
+var WIDTH = Math.min(window.innerWidth, window.innerHeight) * (horizantal ? 0.7 : 0.95);
+var HEIGHT = WIDTH;
+var UNIT = WIDTH / 400;
+var RADIUS = 8 * UNIT;
+var COLOR_CLEAR = '#ffff52';
+var COLOR_USER = '#0000ca';
+var COLOR_TRACER = '#c7009e';
+cvs.setAttribute('width', WIDTH.toString());
+cvs.setAttribute('height', HEIGHT.toString());
+function drawPoint(x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, RADIUS, 0, 2 * Math.PI);
+    ctx.fill();
+}
+;
+function clear() {
+    ctx.fillStyle = COLOR_CLEAR;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+}
+function getCanvasPos(cvs, e) {
+    var rect = cvs.getBoundingClientRect();
+    return [e.clientX - rect.left * (cvs.width / rect.width),
+        e.clientY - rect.top * (cvs.height / rect.height)];
+}
+cvs.addEventListener("mouseup", function (e) {
+    mt.target = [];
+});
+cvs.addEventListener("mousedown", function (e) {
+    if (e.buttons > 0) {
+        var _a = getCanvasPos(cvs, e), x = _a[0], y = _a[1];
+        mt.target = [x / WIDTH, y / HEIGHT];
+    }
+});
+cvs.addEventListener("mousemove", function (e) {
+    if (e.buttons > 0) {
+        var _a = getCanvasPos(cvs, e), x = _a[0], y = _a[1];
+        mt.target = [x / WIDTH, y / HEIGHT];
+    }
+});
+cvs.addEventListener("touchstart", function (e) {
+    e.preventDefault();
+    var _a = getCanvasPos(cvs, e.touches[0]), x = _a[0], y = _a[1];
+    mt.target = [x / WIDTH, y / HEIGHT];
+});
+cvs.addEventListener("touchmove", function (e) {
+    e.preventDefault();
+    var _a = getCanvasPos(cvs, e.touches[0]), x = _a[0], y = _a[1];
+    mt.target = [x / WIDTH, y / HEIGHT];
+});
+cvs.addEventListener("touchend", function (e) {
+    e.preventDefault();
+    mt.target = [];
+});
+// let accelerationSpan = document.getElementById('acceleration');
+// let targetSpan = document.getElementById('target');
+// let outputSpan = document.getElementById('output');
+// let lossSpan = document.getElementById('loss');
+var mt = new mtracer_1.MTracer(15, 25);
+mt.run(function (acceleration, target, output, loss) {
+    clear();
+    // if (acceleration.length > 0)
+    //     accelerationSpan.innerHTML = acceleration.map((val) => { return val.toFixed(2) }).join(', ');
+    // if (target.length > 0)
+    //     targetSpan.innerHTML = target.map((val) => { return val.toFixed(2) }).join(', ');
+    // if (output.length > 0)
+    //     outputSpan.innerHTML = output.map((val) => { return val.toFixed(2) }).join(', ');
+    // if (loss)
+    //     lossSpan.innerHTML = loss.toFixed(2);
+    if (target.length == 2) {
+        ctx.fillStyle = COLOR_USER;
+        drawPoint(target[0] * WIDTH, target[1] * HEIGHT);
+    }
+    if (output.length == 2) {
+        ctx.fillStyle = COLOR_TRACER;
+        drawPoint(output[0] * WIDTH, output[1] * HEIGHT);
+    }
+});
+// document.getElementById('reset-btn').onclick = () => { mt.reset(); };
+var monitor = new Vue({
+    el: '#monitor',
+    data: {
+        mt: mt,
+    }
+});
+$('#reset-btn').click(function () { mt.reset(); });
+$('#setting-btn').click(function () {
+    $('#settings').modal('show');
+});
+var setting = new Vue({
+    el: '#settings',
+    data: {
+        mt: mt,
+        updateFramePerSecond: function (event, sign) {
+            mt.framePerSecond += sign > 0 ? 1 : -1;
+        },
+        updateLearningRate: function (event, sign) {
+            mt.eta += sign > 0 ? 0.01 : -0.01;
+        },
+        toggleAcceleration: function (event, on) {
+            mt.accelerationEnabled = on;
+        },
+        toggleOrientation: function (event, on) {
+            mt.orientationEnabled = on;
+        },
+        hideModal: function () {
+            $('#settings').modal('hide');
+        }
+    }
+});
+
+
+/***/ }),
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -570,7 +634,7 @@ exports.RNN = RNN;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var matrix_1 = __webpack_require__(0);
-var rnn_1 = __webpack_require__(3);
+var rnn_1 = __webpack_require__(2);
 var Tracer = (function () {
     function Tracer(series_len, input_dim, hidden_dim, output_dim) {
         this.rnn = new rnn_1.RNN(series_len, input_dim, hidden_dim, output_dim);
@@ -579,7 +643,7 @@ var Tracer = (function () {
         this.input_dim = input_dim;
         this.output_dim = output_dim;
     }
-    Tracer.prototype.tick = function (input, target, eta) {
+    Tracer.prototype.update = function (input, target, eta) {
         if (input === void 0) { input = []; }
         if (target === void 0) { target = []; }
         if (eta === void 0) { eta = 0.3; }
@@ -604,4 +668,4 @@ exports.Tracer = Tracer;
 
 /***/ })
 /******/ ]);
-//# sourceMappingURL=bundle.js.map
+//# sourceMappingURL=motion-tracer.js.map

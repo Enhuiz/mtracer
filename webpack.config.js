@@ -1,7 +1,7 @@
-module.exports = {
-    entry: "./src/main.ts",
+module.exports = [{
+    entry: "./src/tracers/motion/app.ts",
     output: {
-        filename: "bundle.js",
+        filename: "motion-tracer.js",
         path: __dirname + "/dist"
     },
 
@@ -27,4 +27,4 @@ module.exports = {
     // assume a corresponding global variable exists and use that instead.
     // This is important because it allows us to avoid bundling all of our
     // dependencies, which allows browsers to cache those libraries between builds.
-};
+}];

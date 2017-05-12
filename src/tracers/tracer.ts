@@ -1,5 +1,5 @@
-import { Matrix } from "./matrix";
-import { RNN } from "./rnn";
+import { Matrix } from "../math/matrix";
+import { RNN } from "../model/rnn";
 
 export class Tracer {
     protected rnn: RNN;
@@ -18,7 +18,7 @@ export class Tracer {
         this.output_dim = output_dim;
     }
 
-    tick(input: number[] = [], target: number[] = [], eta: number = 0.3) {
+    update(input: number[] = [], target: number[] = [], eta: number = 0.3) {
         if (input.length === this.input_dim) {
             this.inputs_series.splice(0, 1);
             this.inputs_series.push(input);
