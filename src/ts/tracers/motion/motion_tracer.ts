@@ -1,12 +1,11 @@
 import { Tracer } from "../tracer";
 
-export class MTracer extends Tracer {
+export class MotionTracer extends Tracer {
     private acceleration: number[]
     private orientation: number[]
 
     accelerationEnabled: boolean;
     orientationEnabled: boolean;
-    eta: number
     target: number[]
     framePerSecond: number;
 
@@ -52,7 +51,7 @@ export class MTracer extends Tracer {
             .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
 
         if (input.length === 6) {
-            this.output = super.update(input, this.target, this.eta);
+            this.output = super.update(input, this.target);
         }
 
         if (callback) {

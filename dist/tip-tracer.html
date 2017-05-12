@@ -6,15 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link href="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.css" rel="stylesheet">
-    <title>Motion Tracer</title>
-
+    <title>Tip Tracer</title>
     <style>
         canvas {
             border: solid #000000;
         }
-        /*body {
-            background-color: #4fb3bf;
-        }*/
     </style>
 </head>
 
@@ -22,15 +18,13 @@
     <div class="ui menu">
         <a class="item" href="../index.html"> <i class="angle left icon"></i>
         </a>
-        <div class="item" href="../index.html">Motion Tracer</div>
+        <div class="item" href="../index.html">Tip Tracer</div>
         <a class="github popup icon item" data-content="View project on GitHub" href="https://github.com/Enhuiz/tracer">
             <i class="alternate github icon"></i>
         </a>
     </div>
 
-    <center>
-        <canvas id="cvs"></canvas>
-    </center>
+    <center><canvas id="cvs" class="center"></canvas></center>
     <br>
 
     <center>
@@ -41,22 +35,6 @@
                 </div>
                 <div class="value">
                     <span id="loss-span"> </span>
-                </div>
-            </div>
-            <div class="mini statistic">
-                <div class="label">
-                    Acceleration
-                </div>
-                <div class="value">
-                    <span id="acceleration-span"> </span>
-                </div>
-            </div>
-            <div class="mini statistic">
-                <div class="label">
-                    Orientation
-                </div>
-                <div class="value">
-                    <span id="orientation-span"> </span>
                 </div>
             </div>
             <div class="mini statistic">
@@ -79,9 +57,9 @@
     </center>
     <br>
     <center>
-        <button id="setting-btn" class="ui mini yellow basic button">Setting Panel</button>
-        <button id="hide-monitor-btn" class="ui mini yellow basic button">Hide Monitor</button>
-        <button id="reset-btn" class="ui mini yellow basic button">Reset Tracer</button>
+        <button id="setting-btn" class="ui mini red basic button">Setting Panel</button>
+        <button id="hide-monitor-btn" class="ui mini red basic button">Hide Monitor</button>
+        <button id="reset-btn" class="ui mini red basic button">Reset Tracer</button>
     </center>
 
     <br>
@@ -127,32 +105,6 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr>
-                            <td>
-                                <span class="ui black label "> 
-                                Use Acceleration
-                                </span>
-                            </td>
-                            <td>
-                                <div class="ui basic label "> <span id="acc-span"></span> </div>
-                            </td>
-                            <td>
-                                <button id="toggle-acc-btn" class="ui mini button "></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <span class="ui black label "> 
-                                Use Orientation
-                                </span>
-                            </td>
-                            <td>
-                                <div class="ui basic label "> <span id="ori-span"></span> </div>
-                            </td>
-                            <td>
-                                <button id="toggle-ori-btn" class="ui mini button "></button>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
                 <button class="ui button black " id="go-back-btn">Go Back</button>
@@ -161,11 +113,10 @@
             </center>
             </div>
         </div>
-
 </body>
 <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js "></script>
 <script src="https://cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js "></script>
 <script src="https://cdn.bootcss.com/vue/2.3.2/vue.min.js "></script>
-<script src="motion-tracer.js "></script>
+<script src="tip-tracer.js "></script>
 
 </html>

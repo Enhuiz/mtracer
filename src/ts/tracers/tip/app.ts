@@ -1,4 +1,4 @@
-import { MotionTracer } from "./motion_tracer";
+import { TipTracer } from "./tip_tracer";
 
 declare let Vue;
 declare let $;
@@ -13,9 +13,10 @@ let HEIGHT = WIDTH;
 let UNIT = WIDTH / 400;
 let RADIUS = 8 * UNIT;
 
+
 let COLOR_CLEAR = '#ffffff';
-let COLOR_TRACER = '#fbbd08';
-let COLOR_USER = '#7d08fb';
+let COLOR_TRACER = '#db2828';
+let COLOR_USER = '#28db28';
 
 cvs.setAttribute('width', WIDTH.toString());
 cvs.setAttribute('height', HEIGHT.toString());
@@ -72,24 +73,17 @@ cvs.addEventListener("touchend", function (e) {
     mt.target = [];
 });
 
-let accelerationSpan = $('#acceleration-span');
 let targetSpan = $('#target-span');
 let outputSpan = $('#output-span');
 let lossSpan = $('#loss-span');
-let orientationSpan = $('#orientation-span');
 
-let mt = new MotionTracer(15, 30);
+let mt = new TipTracer(10, 15);
 
-mt.run((acceleration, orientation, target, output, loss) => {
+mt.run((target, output, loss) => {
     clear();
-
-    accelerationSpan.text(acceleration.length > 0 ? acceleration.map(val => { return val.toFixed(2) }).join(', ') : '-');
-
-    orientationSpan.text(orientation.length > 0 ? orientation.map(val => { return val.toFixed(2) }).join(', ') : '0');
 
     targetSpan.text(target.length > 0 ? target.map(val => { return val.toFixed(2) }).join(', ') : '-');
     outputSpan.text(output.length > 0 ? output.map(val => { return val.toFixed(2) }).join(', ') : '-');
-
     lossSpan.text(loss ? loss.toFixed(2) : '-');
 
     if (target.length === 2) {
@@ -108,20 +102,16 @@ $('#setting-btn').click(() => {
     $('#settings').modal('show');
     $('#fps-span').text(mt.framePerSecond);
     $('#eta-span').text(mt.eta);
-    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
-    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
-    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
-    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
 });
 
 let monitor = $("#monitor");
 let hideMonitorBtn = $('#hide-monitor-btn');
 hideMonitorBtn.click(() => {
     if (monitor.is(":visible")) {
-        monitor.hide(200);
+        monitor.hide(300);
         hideMonitorBtn.text("Show Monitor");
     } else {
-        monitor.show(200);
+        monitor.show(300);
         hideMonitorBtn.text("Hide Monitor");
     }
 });
@@ -162,17 +152,4 @@ $('#subtract-eta-btn').click(() => {
     }
     $('#add-eta-btn').removeAttr('disabled');
     $('#eta-span').text(mt.eta.toFixed(2));
-});
-
-
-$('#toggle-acc-btn').click(() => {
-    mt.accelerationEnabled = !mt.accelerationEnabled;
-    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
-    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
-});
-
-$('#toggle-ori-btn').click(() => {
-    mt.orientationEnabled = !mt.orientationEnabled;
-    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
-    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
 });

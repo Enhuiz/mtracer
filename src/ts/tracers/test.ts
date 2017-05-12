@@ -27,9 +27,11 @@ import { ExecTimer } from "../utils/exec_timer"
 
     let tracer = new Tracer(20, input_dim, hidden_dim, output_dim);
 
+    tracer.eta = 1e-2;
+
     for (let epoch = 0; epoch < 1; ++epoch) {
         for (let i = 0; i < series_len; ++i) {
-            tracer.update(inputs_series[i], targets_series[i], 1e-2);
+            tracer.update(inputs_series[i], targets_series[i]);
         }
     }
 

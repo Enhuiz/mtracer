@@ -377,62 +377,40 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var tracer_1 = __webpack_require__(4);
-var MotionTracer = (function (_super) {
-    __extends(MotionTracer, _super);
-    function MotionTracer(series_len, hidden_dim) {
-        var _this = _super.call(this, series_len, 6, hidden_dim, 2) || this;
-        _this.accelerationEnabled = true;
-        _this.orientationEnabled = true;
-        window.addEventListener('devicemotion', function (event) {
-            if (event.acceleration && _this.accelerationEnabled) {
-                _this.acceleration = [event.acceleration.x || 0, event.acceleration.y || 0, event.acceleration.z || 0];
-            }
-            else {
-                _this.acceleration = [];
-            }
-        });
-        window.addEventListener('deviceorientation', function (event) {
-            if (_this.orientationEnabled) {
-                _this.orientation = [event.alpha / 360 || 0, event.beta / 360 || 0, event.gamma / 360 || 0];
-            }
-            else {
-                _this.orientation = [];
-            }
-        });
-        _this.acceleration = [];
-        _this.orientation = [];
+var TipTracer = (function (_super) {
+    __extends(TipTracer, _super);
+    function TipTracer(series_len, hidden_dim) {
+        var _this = _super.call(this, series_len, 2, hidden_dim, 2) || this;
         _this.target = [];
         _this.output = [];
-        _this.eta = 0.02;
-        _this.framePerSecond = 60;
+        _this.eta = 0.05;
+        _this.framePerSecond = 40;
+        _this.prevTarget = [];
         return _this;
     }
-    MotionTracer.prototype.run = function (callback) {
+    TipTracer.prototype.run = function (callback) {
         var _this = this;
         setTimeout(function () { _this.frame(callback); }, 1000 / this.framePerSecond);
     };
-    MotionTracer.prototype.frame = function (callback) {
+    TipTracer.prototype.frame = function (callback) {
         var _this = this;
-        var input = []
-            .concat(this.accelerationEnabled && this.acceleration.length > 0 ? this.acceleration : [0, 0, 0])
-            .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
-        if (input.length === 6) {
-            this.output = _super.prototype.update.call(this, input, this.target);
-        }
+        var input = this.prevTarget.length > 0 ? this.prevTarget : this.output;
+        this.output = _super.prototype.update.call(this, input, this.target);
         if (callback) {
-            callback(this.acceleration, this.orientation, this.target, this.output, this.loss);
+            callback(this.target, this.output, this.loss);
         }
+        this.prevTarget = this.target;
         setTimeout(function () { _this.frame(callback); }, 1000 / this.framePerSecond);
     };
-    MotionTracer.prototype.reset = function () {
+    TipTracer.prototype.reset = function () {
         _super.prototype.reset.call(this);
         this.target = [];
         this.output = [];
         this.loss = 0;
     };
-    return MotionTracer;
+    return TipTracer;
 }(tracer_1.Tracer));
-exports.MotionTracer = MotionTracer;
+exports.TipTracer = TipTracer;
 
 
 /***/ }),
@@ -537,7 +515,7 @@ exports.RNN = RNN;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var motion_tracer_1 = __webpack_require__(1);
+var tip_tracer_1 = __webpack_require__(1);
 var cvs = document.getElementById('cvs');
 var ctx = cvs.getContext('2d');
 var horizantal = window.innerWidth > window.innerHeight;
@@ -546,8 +524,8 @@ var HEIGHT = WIDTH;
 var UNIT = WIDTH / 400;
 var RADIUS = 8 * UNIT;
 var COLOR_CLEAR = '#ffffff';
-var COLOR_TRACER = '#fbbd08';
-var COLOR_USER = '#7d08fb';
+var COLOR_TRACER = '#db2828';
+var COLOR_USER = '#28db28';
 cvs.setAttribute('width', WIDTH.toString());
 cvs.setAttribute('height', HEIGHT.toString());
 function drawPoint(x, y) {
@@ -594,16 +572,12 @@ cvs.addEventListener("touchend", function (e) {
     e.preventDefault();
     mt.target = [];
 });
-var accelerationSpan = $('#acceleration-span');
 var targetSpan = $('#target-span');
 var outputSpan = $('#output-span');
 var lossSpan = $('#loss-span');
-var orientationSpan = $('#orientation-span');
-var mt = new motion_tracer_1.MotionTracer(15, 30);
-mt.run(function (acceleration, orientation, target, output, loss) {
+var mt = new tip_tracer_1.TipTracer(10, 15);
+mt.run(function (target, output, loss) {
     clear();
-    accelerationSpan.text(acceleration.length > 0 ? acceleration.map(function (val) { return val.toFixed(2); }).join(', ') : '-');
-    orientationSpan.text(orientation.length > 0 ? orientation.map(function (val) { return val.toFixed(2); }).join(', ') : '0');
     targetSpan.text(target.length > 0 ? target.map(function (val) { return val.toFixed(2); }).join(', ') : '-');
     outputSpan.text(output.length > 0 ? output.map(function (val) { return val.toFixed(2); }).join(', ') : '-');
     lossSpan.text(loss ? loss.toFixed(2) : '-');
@@ -621,20 +595,16 @@ $('#setting-btn').click(function () {
     $('#settings').modal('show');
     $('#fps-span').text(mt.framePerSecond);
     $('#eta-span').text(mt.eta);
-    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
-    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
-    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
-    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
 });
 var monitor = $("#monitor");
 var hideMonitorBtn = $('#hide-monitor-btn');
 hideMonitorBtn.click(function () {
     if (monitor.is(":visible")) {
-        monitor.hide(200);
+        monitor.hide(300);
         hideMonitorBtn.text("Show Monitor");
     }
     else {
-        monitor.show(200);
+        monitor.show(300);
         hideMonitorBtn.text("Hide Monitor");
     }
 });
@@ -670,16 +640,6 @@ $('#subtract-eta-btn').click(function () {
     }
     $('#add-eta-btn').removeAttr('disabled');
     $('#eta-span').text(mt.eta.toFixed(2));
-});
-$('#toggle-acc-btn').click(function () {
-    mt.accelerationEnabled = !mt.accelerationEnabled;
-    $('#toggle-acc-btn').html(mt.accelerationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
-    $('#acc-span').text(mt.accelerationEnabled ? "On" : "Off");
-});
-$('#toggle-ori-btn').click(function () {
-    mt.orientationEnabled = !mt.orientationEnabled;
-    $('#toggle-ori-btn').html(mt.orientationEnabled ? '<i  class="toggle on icon "></i>' : '<i  class="toggle off icon"></i>');
-    $('#ori-span').text(mt.orientationEnabled ? "On" : "Off");
 });
 
 
@@ -728,4 +688,4 @@ exports.Tracer = Tracer;
 
 /***/ })
 /******/ ]);
-//# sourceMappingURL=motion-tracer.js.map
+//# sourceMappingURL=tip-tracer.js.map
