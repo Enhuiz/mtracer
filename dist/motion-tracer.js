@@ -367,7 +367,7 @@ var MTracer = (function (_super) {
                 _this.acceleration = [event.acceleration.x || 0, event.acceleration.y || 0, event.acceleration.z || 0];
             }
             else {
-                _this.acceleration = [0, 0, 0];
+                _this.acceleration = [];
             }
         });
         window.addEventListener('deviceorientation', function (event) {
@@ -375,7 +375,7 @@ var MTracer = (function (_super) {
                 _this.orientation = [event.alpha || 0, event.beta || 0, event.gamma || 0];
             }
             else {
-                _this.orientation = [0, 0, 0];
+                _this.orientation = [];
             }
         });
         _this.acceleration = [];
@@ -393,10 +393,11 @@ var MTracer = (function (_super) {
     MTracer.prototype.frame = function (callback) {
         var _this = this;
         var input = []
-            .concat(this.accelerationEnabled ? this.acceleration : [0, 0, 0])
-            .concat(this.orientationEnabled ? this.orientation : [0, 0, 0]);
-        if (input.length === 6 && this.target.length === 2) {
+            .concat(this.accelerationEnabled && this.acceleration.length > 0 ? this.acceleration : [0, 0, 0])
+            .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
+        if (input.length === 6) {
             this.output = _super.prototype.update.call(this, this.acceleration.concat(this.orientation), this.target, this.eta);
+            console.log('hi');
         }
         if (callback) {
             callback(this.acceleration, this.target, this.output, this.loss);

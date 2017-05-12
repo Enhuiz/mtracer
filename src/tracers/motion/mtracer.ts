@@ -22,7 +22,7 @@ export class MTracer extends Tracer {
             if (event.acceleration && this.accelerationEnabled) {
                 this.acceleration = [event.acceleration.x || 0, event.acceleration.y || 0, event.acceleration.z || 0];
             } else {
-                this.acceleration = [0, 0, 0];
+                this.acceleration = [];
             }
         });
 
@@ -30,7 +30,7 @@ export class MTracer extends Tracer {
             if (this.orientationEnabled) {
                 this.orientation = [event.alpha || 0, event.beta || 0, event.gamma || 0];
             } else {
-                this.orientation = [0, 0, 0];
+                this.orientation = [];
             }
         });
 
@@ -48,9 +48,9 @@ export class MTracer extends Tracer {
 
     private frame(callback?: (acceleration: number[], target: number[], output: number[], loss: number) => void) {
         let input = []
-            .concat(this.accelerationEnabled ? this.acceleration : [0, 0, 0])
-            .concat(this.orientationEnabled ? this.orientation : [0, 0, 0]);
-        if (input.length === 6 && this.target.length === 2) {
+            .concat(this.accelerationEnabled && this.acceleration.length > 0 ? this.acceleration : [0, 0, 0])
+            .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
+        if (input.length === 6) {
             this.output = super.update(this.acceleration.concat(this.orientation), this.target, this.eta);
         }
         if (callback) {
