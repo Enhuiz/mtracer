@@ -20,15 +20,15 @@ export class Tracer {
 
     update(input: number[] = [], target: number[] = [], eta: number = 0.3) {
         if (input.length === this.input_dim) {
-            this.inputs_series.splice(0, 1);
+            this.inputs_series.shift();
             this.inputs_series.push(input);
             if (input && target.length === this.output_dim) {
-                this.target_series.splice(0, 1);
+                this.target_series.shift();
                 this.target_series.push(target);
-                this.loss = this.rnn.train(new Matrix(this.inputs_series), new Matrix(this.target_series), eta);
+                this.loss = this.rnn.train(Matrix.createFromArray2D(this.inputs_series), Matrix.createFromArray2D(this.target_series), eta);
             }
         }
-        return this.rnn.predict(new Matrix(this.inputs_series)).row(-1).content;
+        return this.rnn.predict(Matrix.createFromArray2D(this.inputs_series)).row(-1).content;
     }
 
     reset() {

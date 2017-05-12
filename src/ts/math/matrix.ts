@@ -2,45 +2,45 @@ export class Matrix {
     readonly content: number[];
     readonly shape: [number, number];
 
-    constructor(arr: number[][]) {
-        this.shape = [arr.length, arr[0].length];
-        for (let i = 0; i < this.shape[0]; ++i) {
-            if (arr[i].length != this.shape[1]) {
-                throw new Error("Invalid shape");
-            }
-        }
+    constructor(shape: [number, number], callback?: (index: [number, number]) => number) {
+        this.shape = shape;
 
         this.content = new Array(this.shape[0] * this.shape[1]);
         for (let i = 0; i < this.shape[0]; ++i) {
             for (let j = 0; j < this.shape[1]; ++j) {
-                this.set(i, j, arr[i][j]);
+                this.set(i, j, callback ? callback([i, j]) : 0);
             }
         }
     }
 
-    private static create(shape: [number, number], callback: (index: [number, number]) => number) {
-        let arr = Matrix.createArray2D(shape, callback);
-        return new Matrix(arr);
+    static createFromArray2D(arr: number[][]) {
+        let shape: [number, number] = [arr.length, arr[0].length];
+        for (let i = 0; i < shape[0]; ++i) {
+            if (arr[i].length != shape[1]) {
+                throw new Error("Invalid shape");
+            }
+        }
+        return new Matrix(shape, index => { return arr[index[0]][index[1]]; });
     }
 
     static eye(shape: [number, number]): Matrix {
-        return Matrix.create(shape, (index) => { return index[0] === index[1] ? 1 : 0; })
+        return new Matrix(shape, index => { return index[0] === index[1] ? 1 : 0; });
     }
 
     static zeros(shape: [number, number]): Matrix {
-        return Matrix.create(shape, () => { return 0; })
+        return new Matrix(shape);
     }
 
     static ones(shape: [number, number]): Matrix {
-        return Matrix.create(shape, () => { return 1; })
+        return new Matrix(shape, () => { return 1; });
     }
 
     static full(shape: [number, number], val: number): Matrix {
-        return Matrix.create(shape, () => { return val; })
+        return new Matrix(shape, () => { return val; });
     }
 
     static random(shape: [number, number], max: number, min: number): Matrix {
-        return Matrix.create(shape, () => { return min + Math.random() * (max - min); })
+        return new Matrix(shape, () => { return min + Math.random() * (max - min); })
     }
 
     static tanh(mat: Matrix): Matrix {
@@ -100,7 +100,7 @@ export class Matrix {
 
     static argmax(mat: Matrix, axis: number): Matrix {
         if (axis === 0) {
-            return Matrix.create([1, mat.shape[1]], (index) => {
+            return new Matrix([1, mat.shape[1]], index => {
                 let ret = 0;
                 for (let i = 1; i < mat.shape[0]; ++i) { // for each row
                     ret = mat.get(i, index[1]) > mat.get(ret, index[1]) ? i : ret;
@@ -108,7 +108,7 @@ export class Matrix {
                 return ret;
             });
         } else if (axis === 1) {
-            return Matrix.create([mat.shape[0], 1], (index) => {
+            return new Matrix([mat.shape[0], 1], index => {
                 let ret = 0;
                 for (let j = 1; j < mat.shape[1]; ++j) { // for each col
                     ret = mat.get(index[0], j) > mat.get(index[0], ret) ? j : ret;
@@ -135,13 +135,9 @@ export class Matrix {
     }
 
     map(callback: (val: number, index: [number, number], matrix: Matrix) => number): Matrix {
-        let arr = Matrix.createArray2D(this.shape);
-        for (let i = 0; i < this.shape[0]; ++i) {
-            for (let j = 0; j < this.shape[1]; ++j) {
-                arr[i][j] = callback(this.get(i, j), [i, j], this);
-            }
-        }
-        return new Matrix(arr);
+        return new Matrix(this.shape, index => {
+            return callback(this.get(index), index, this);
+        });
     }
 
     clip(min: number, max: number): Matrix {
@@ -205,7 +201,7 @@ export class Matrix {
     }
 
     get(i: number, j: number): number;
-    get(i: [number, number]):number;
+    get(i: [number, number]): number;
     get(i: number | [number, number], j?: number): number {
         let offset;
         if (typeof i === 'number' && typeof j === 'number') {
@@ -221,14 +217,14 @@ export class Matrix {
 
     row(n: number): Matrix {
         if (n < 0) n += this.shape[0];
-        return Matrix.create([1, this.shape[1]], index => {
+        return new Matrix([1, this.shape[1]], index => {
             return this.get(n, index[1]);
         });
     }
 
     col(n: number): Matrix {
         if (n < 0) n += this.shape[1];
-        return Matrix.create([this.shape[0], 1], index => {
+        return new Matrix([this.shape[0], 1], index => {
             return this.get(index[0], n);
         });
     }

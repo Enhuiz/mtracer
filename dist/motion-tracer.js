@@ -372,7 +372,7 @@ var MTracer = (function (_super) {
         });
         window.addEventListener('deviceorientation', function (event) {
             if (_this.orientationEnabled) {
-                _this.orientation = [event.alpha || 0, event.beta || 0, event.gamma || 0];
+                _this.orientation = [event.alpha / 360 || 0, event.beta / 360 || 0, event.gamma / 360 || 0];
             }
             else {
                 _this.orientation = [];
@@ -396,8 +396,7 @@ var MTracer = (function (_super) {
             .concat(this.accelerationEnabled && this.acceleration.length > 0 ? this.acceleration : [0, 0, 0])
             .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
         if (input.length === 6) {
-            this.output = _super.prototype.update.call(this, this.acceleration.concat(this.orientation), this.target, this.eta);
-            console.log('hi');
+            this.output = _super.prototype.update.call(this, input, this.target, this.eta);
         }
         if (callback) {
             callback(this.acceleration, this.target, this.output, this.loss);
@@ -573,7 +572,7 @@ cvs.addEventListener("touchend", function (e) {
 // let targetSpan = document.getElementById('target');
 // let outputSpan = document.getElementById('output');
 // let lossSpan = document.getElementById('loss');
-var mt = new mtracer_1.MTracer(15, 25);
+var mt = new mtracer_1.MTracer(15, 30);
 mt.run(function (acceleration, target, output, loss) {
     clear();
     // if (acceleration.length > 0)

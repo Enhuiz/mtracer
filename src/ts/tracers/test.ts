@@ -1,5 +1,6 @@
 import { Tracer } from "./tracer";
 import { Matrix } from "../math/matrix";
+import { ExecTimer } from "../utils/exec_timer"
 
 // test tracer
 ((skip?: any) => {
@@ -22,22 +23,19 @@ import { Matrix } from "../math/matrix";
     let targets_series = series_start_at(series_len, input_dim, 3);
     let test_inputs_series = series_start_at(series_len, input_dim, 5);
 
+    let etimer = new ExecTimer();
+
     let tracer = new Tracer(20, input_dim, hidden_dim, output_dim);
 
-    for (let epoch = 0; epoch < 1; ++epoch)
+    for (let epoch = 0; epoch < 1; ++epoch) {
         for (let i = 0; i < series_len; ++i) {
             tracer.update(inputs_series[i], targets_series[i], 1e-2);
         }
-
-    function argmax(arr: number[]) {
-        let ret = 0;
-        for (let i = 0; i < arr.length; ++i) {
-            ret = arr[i] > arr[ret] ? i : ret;
-        }
-        return ret;
     }
 
     for (let i = 0; i < series_len; ++i) {
-        console.log(argmax(tracer.update(inputs_series[i])));
+        tracer.update(inputs_series[i]);
     }
-})(1);
+
+    console.log(etimer.read());
+})();

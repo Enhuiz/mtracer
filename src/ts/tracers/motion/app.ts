@@ -78,7 +78,7 @@ cvs.addEventListener("touchend", function (e) {
 // let outputSpan = document.getElementById('output');
 // let lossSpan = document.getElementById('loss');
 
-let mt = new MTracer(15, 25);
+let mt = new MTracer(15, 30);
 
 mt.run((acceleration, target, output, loss) => {
     clear();

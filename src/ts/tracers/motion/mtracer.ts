@@ -28,7 +28,7 @@ export class MTracer extends Tracer {
 
         window.addEventListener('deviceorientation', (event) => {
             if (this.orientationEnabled) {
-                this.orientation = [event.alpha || 0, event.beta || 0, event.gamma || 0];
+                this.orientation = [event.alpha / 360 || 0, event.beta / 360 || 0, event.gamma / 360 || 0];
             } else {
                 this.orientation = [];
             }
@@ -51,7 +51,7 @@ export class MTracer extends Tracer {
             .concat(this.accelerationEnabled && this.acceleration.length > 0 ? this.acceleration : [0, 0, 0])
             .concat(this.orientationEnabled && this.orientation.length > 0 ? this.orientation : [0, 0, 0]);
         if (input.length === 6) {
-            this.output = super.update(this.acceleration.concat(this.orientation), this.target, this.eta);
+            this.output = super.update(input, this.target, this.eta);
         }
         if (callback) {
             callback(this.acceleration, this.target, this.output, this.loss);
